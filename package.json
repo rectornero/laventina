@@ -1,0 +1,20 @@
+{
+  "name": "laventina",
+  "private": true,
+  "type": "module",
+  "description": "Laventina: a light task manager for the home, with inventory, upkeep, projects, and money and papers.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@neondatabase/serverless": "^1.2.0",
+    "@netlify/blobs": "^11.1.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10"
+  }
+}

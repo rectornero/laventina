@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laventina</title>
+<meta name="description" content="A light task manager for the home: one shared list, with inventory, upkeep, projects, and money and papers around it.">
+<meta name="theme-color" content="#F7F4FC">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="/js/base.js" defer></script>
+<script src="/js/tasks.js" defer></script>
+<script src="/js/house.js" defer></script>
+<script src="/js/modules.js" defer></script>
+<script src="/js/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <span id="brand-logo" class="brand-logo"></span>
+      <div class="brand"><h1>Laventina</h1><small id="h-sub"></small></div>
+      <span class="members-head" id="h-members"></span>
+      <button class="iconbtn" data-act="settings" aria-label="Settings">Settings</button>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </div>
+  <div class="wrap"><nav class="chips subtabs" id="subtabs" aria-label="House" hidden></nav></div>
+</header>
+<main class="wrap" id="main"></main>
+<button class="fab" data-act="task-new" id="fab" hidden><span aria-hidden="true">+</span> New task</button>
+<div id="layer"></div>
+<div id="toast-host" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "Laventina",
+  "short_name": "Laventina",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F4FC",
+  "theme_color": "#F7F4FC",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
