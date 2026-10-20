@@ -4,6 +4,7 @@ import { sync, putRecord, deleteRecord, putTask, deleteTask } from "../../lib/da
 import { generate, generateIfStale } from "../../lib/generate.mjs";
 import { saveFile, readFile, deleteFile } from "../../lib/files.mjs";
 import { askClaude, aiEnabled } from "../../lib/ai.mjs";
+import { pushEnabled, publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
 
@@ -14,7 +15,7 @@ async function body(req) {
 async function me(user, hid) {
   const h = (await q("select id, name, invite_code from households where id = $1", [hid]))[0];
   const members = await q("select u.id, u.name, u.color, m.role from members m join users u on u.id = m.user_id where m.household_id = $1 order by m.joined_at", [hid]);
-  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled() };
+  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled(), push: pushEnabled() ? { publicKey: publicKey() } : null };
 }
 
 export async function route(req) {
@@ -66,7 +67,16 @@ export async function route(req) {
     if (method === "DELETE") return json(await deleteRecord(hid, user.id, m[1], decodeURIComponent(m[2])));
   }
   if ((m = path.match(/^\/tasks\/([^/]+)$/))) {
-    if (method === "PUT") return json(await putTask(hid, user.id, decodeURIComponent(m[1]), await body(req)));
+    if (method === "PUT") {
+      const id = decodeURIComponent(m[1]), b = await body(req);
+      const before = (await q("select assignee_id from tasks where id = $1 and household_id = $2", [id, hid]))[0];
+      const out = await putTask(hid, user.id, id, b);
+      // A task handed to someone else, new or reassigned, rings their devices.
+      if (b.data.assigneeId && b.data.assigneeId !== (before && before.assignee_id)) {
+        try { await notifyAssigned(hid, user, { ...b.data, id }); } catch (e) { console.error("notify", e); }
+      }
+      return json(out);
+    }
     if (method === "DELETE") return json(await deleteTask(hid, user.id, decodeURIComponent(m[1])));
   }
   if (path === "/files" && method === "POST") return json(await saveFile(hid, user.id, req));
@@ -74,6 +84,10 @@ export async function route(req) {
     if (method === "GET") return readFile(hid, m[1]);
     if (method === "DELETE") { await deleteFile(hid, m[1]); return json({ ok: true }); }
   }
+  if (path === "/push/device" && method === "POST") return json(await deviceSettings(user.id, (await body(req)).endpoint));
+  if (path === "/push/subscribe" && method === "POST") return json(await subscribe(hid, user.id, await body(req)));
+  if (path === "/push/unsubscribe" && method === "POST") return json(await unsubscribe(user.id, (await body(req)).endpoint));
+  if (path === "/push/test" && method === "POST") return json(await sendTest(user.id, (await body(req)).endpoint));
   if (path === "/ai" && method === "POST") return json(await askClaude(hid, await body(req)));
 
   throw new HttpError(404, "not_found", "No such endpoint.");

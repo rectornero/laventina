@@ -12,7 +12,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
     "@netlify/blobs": "^11.1.4",
-    "@netlify/database": "^2.0.1"
+    "@netlify/database": "^2.0.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10"

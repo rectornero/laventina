@@ -126,9 +126,46 @@ test("desiredTasks: a late reminder is due a week before the deadline, not in th
   assert.equal(t.title, "Renew or switch Iberdrola by 14 Nov");
 });
 
-test("the Netlify migration matches the schema", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const { SCHEMA } = await import("../lib/schema.mjs");
-  const sql = await readFile(new URL("../netlify/database/migrations/20261020070000_initial_schema.sql", import.meta.url), "utf8");
-  assert.equal(sql.trim(), SCHEMA.trim());
+test("the Netlify migrations match the schema", async () => {
+  const { readFile, readdir } = await import("node:fs/promises");
+  const { MIGRATIONS } = await import("../lib/schema.mjs");
+  const dir = new URL("../netlify/database/migrations/", import.meta.url);
+  assert.deepEqual((await readdir(dir)).sort(), MIGRATIONS.map(([name]) => name + ".sql"));
+  for (const [name, schema] of MIGRATIONS) assert.equal((await readFile(new URL(name + ".sql", dir), "utf8")).trim(), schema.trim());
+});
+
+test("push: assigned tasks ring the assignee, mornings bring a digest, dead devices are dropped", async () => {
+  const { setSender, sendDigests, digestMessage } = await import("../lib/push.mjs");
+  process.env.VAPID_PUBLIC_KEY = "test-public"; process.env.VAPID_PRIVATE_KEY = "test-private";
+  const sent = []; let gone = new Set();
+  setSender(async (sub, payload) => { if (gone.has(sub.endpoint)) throw Object.assign(new Error("gone"), { statusCode: 410 }); sent.push({ to: sub.endpoint, ...JSON.parse(payload) }); });
+  const samId = (await sam("GET", "/me")).body.user.id;
+  assert.ok((await sam("GET", "/me")).body.push.publicKey);
+  const sub = { endpoint: "https://push.example/sam-phone", keys: { p256dh: "BPkey", auth: "authkey" } };
+  assert.equal((await sam("POST", "/push/subscribe", { subscription: { endpoint: "http://bad" } })).status, 400);
+  assert.equal((await sam("POST", "/push/subscribe", { subscription: sub, tz: "Europe/Madrid", hour: 8 })).status, 200);
+  assert.equal((await sam("POST", "/push/device", { endpoint: sub.endpoint })).body.subscribed, true);
+
+  await nero("PUT", "/tasks/t_bins", { data: { title: "Take the bins out", dueOn: "2026-10-20", assigneeId: samId } });
+  assert.equal(sent.length, 1); assert.equal(sent[0].title, "Nero gave you a task"); assert.match(sent[0].body, /Take the bins out/);
+  await nero("PUT", "/tasks/t_bins", { data: { title: "Take the bins out!", dueOn: "2026-10-20", assigneeId: samId } });
+  await sam("PUT", "/tasks/t_self", { data: { title: "Mine", assigneeId: samId } });
+  await nero("PUT", "/tasks/t_priv", { data: { title: "Secret", assigneeId: samId, visibility: "private" } });
+  assert.equal(sent.length, 1, "no ping for unchanged assignee, self-assignment, or private tasks");
+
+  // 06:30 UTC is 08:30 in Madrid: past the chosen hour, so the digest goes out once.
+  sent.length = 0;
+  await sendDigests(new Date("2026-10-21T06:30:00Z"));
+  assert.equal(sent.length, 1); assert.match(sent[0].title, /things? for today/); assert.match(sent[0].body, /Take the bins out!/); assert.match(sent[0].body, /overdue/);
+  assert.ok(!/Secret/.test(sent[0].body));
+  await sendDigests(new Date("2026-10-21T07:30:00Z"));
+  assert.equal(sent.length, 1, "one digest per day");
+  await sendDigests(new Date("2026-10-22T05:30:00Z"));
+  assert.equal(sent.length, 1, "not before the chosen hour");
+
+  gone.add(sub.endpoint);
+  await sendDigests(new Date("2026-10-22T06:30:00Z"));
+  assert.equal((await sam("POST", "/push/device", { endpoint: sub.endpoint })).body.subscribed, false, "a 410 removes the device");
+  assert.equal(digestMessage([{ title: "A", dueOn: "2026-10-20" }], "2026-10-20").title, "1 thing for today");
+  delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
 });

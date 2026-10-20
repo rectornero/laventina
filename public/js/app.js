@@ -33,6 +33,7 @@ async function submitAuth() {
     else await api("POST", "/auth/signup", { email: v("au-email"), password: $("#au-pass").value, name: v("au-name"), householdName: v("au-house"), inviteCode: authMode === "join" ? v("au-code") : undefined });
     if (location.search) history.replaceState(null, "", location.pathname);
     document.body.classList.remove("signed-out");
+  if (pushSupported()) swReg().catch(() => {});
     boot();
   } catch (e) {
     $("#au-err").innerHTML = `<div class="confirm">${esc(e.message)}</div>`; go.disabled = false;
@@ -41,7 +42,7 @@ async function submitAuth() {
 
 // ---------- Settings ----------
 function applyMe(me) {
-  S.me = me.user; S.members = me.members; S.household = me.household; S.ai = !!me.ai;
+  S.me = me.user; S.members = me.members; S.household = me.household; S.ai = !!me.ai; S.push = me.push || null;
   sampleCap = S.ai ? makeClaude() : null;
 }
 function inviteLink() { return location.origin + "/?invite=" + encodeURIComponent(S.household?.inviteCode || ""); }
@@ -60,6 +61,7 @@ function openSettings() {
         <label class="f">Currency<select id="s-cur">${CURRENCIES.map(c => `<option ${c === S.house.currency ? "selected" : ""}>${c}</option>`).join("")}</select></label>
         ${S.members.length > 1 ? `<label class="f">Ask both of us above <span class="hint">wishlist buys</span><input type="number" id="s-thr" min="0" step="10" value="${esc(threshold())}"></label>` : ""}
       </div>
+      <fieldset><legend class="eyebrow">Notifications on this device</legend><div id="s-push" class="push-panel"><span class="muted">Checking…</span></div></fieldset>
       <fieldset><legend class="eyebrow">Rooms</legend>
         <div style="display:grid;gap:8px" id="s-rooms">${rooms.map(r => {
           const n = [...S.items.values()].filter(i => i.roomId === r.id).length;
@@ -70,7 +72,64 @@ function openSettings() {
       <div class="ai-note">${S.ai ? "Claude is on: it reads photos and receipts and answers questions about your house." : "Claude is off. Whoever runs the Netlify site can add an ANTHROPIC_API_KEY environment variable to turn on photo reading and Ask."}</div>
       <div class="actions" style="justify-content:space-between"><button type="button" class="btn" data-act="signout">Sign out</button><button type="submit" class="btn primary">Save</button></div>
     </form>`);
+  renderPush();
 }
+
+// ---------- Push notifications ----------
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+function keyBytes(b64) {
+  const s = atob((b64 + "=".repeat((4 - b64.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(s, c => c.charCodeAt(0));
+}
+async function swReg() { return navigator.serviceWorker.register("/sw.js"); }
+async function currentSub() {
+  if (!pushSupported()) return null;
+  try { return await (await swReg()).pushManager.getSubscription(); } catch { return null; }
+}
+const hourLabel = h => new Date(2000, 0, 1, h).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+async function renderPush() {
+  const box = $("#s-push"); if (!box) return;
+  const say = html => { if ($("#s-push")) $("#s-push").innerHTML = html; };
+  if (!S.push) return say(`<span class="muted">Notifications are not set up on this site yet.</span>`);
+  if (!pushSupported()) return say(isIOS() && !standalone()
+    ? `<span>On iPhone and iPad, first add Laventina to your Home Screen: tap <b>Share</b>, then <b>Add to Home Screen</b>. Open it from there and turn notifications on here.</span>`
+    : `<span class="muted">This browser cannot show notifications. Chrome, Edge, Firefox and Safari can.</span>`);
+  if (Notification.permission === "denied") return say(`<span>Notifications are blocked for Laventina in this browser's site settings. Allow them there, then come back here.</span>`);
+  const sub = await currentSub();
+  const dev = sub ? await api("POST", "/push/device", { endpoint: sub.endpoint }).catch(() => ({ subscribed: false })) : { subscribed: false };
+  if (!dev.subscribed) return say(`<span>Get a morning list of what is due, and a ping when someone gives you a task.</span><div><button type="button" class="btn primary small" data-act="push-on">Turn on for this device</button></div>`);
+  say(`<label class="check"><input type="checkbox" id="p-daily" ${dev.daily ? "checked" : ""}> Morning list of what is due, at
+      <select id="p-hour" aria-label="Time of the morning list">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === dev.hour ? "selected" : ""}>${hourLabel(h)}</option>`).join("")}</select></label>
+    <label class="check"><input type="checkbox" id="p-assigned" ${dev.assigned ? "checked" : ""}> When someone gives me a task</label>
+    <div class="actions" style="justify-content:flex-start"><button type="button" class="btn small" data-act="push-test">Send a test</button><button type="button" class="btn small" data-act="push-off">Turn off on this device</button></div>`);
+}
+function pushPrefs() {
+  return { daily: $("#p-daily") ? $("#p-daily").checked : true, assigned: $("#p-assigned") ? $("#p-assigned").checked : true,
+    hour: $("#p-hour") ? Number($("#p-hour").value) : 8, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" };
+}
+async function pushOn() {
+  try {
+    if (await Notification.requestPermission() !== "granted") { toast("Notifications were not allowed"); return renderPush(); }
+    const reg = await swReg(); await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(S.push.publicKey) });
+    await api("POST", "/push/subscribe", { subscription: sub.toJSON(), ...pushPrefs() });
+    toast("Notifications are on for this device");
+  } catch (e) { toast(e.message || "Could not turn notifications on"); }
+  renderPush();
+}
+async function pushSave() {
+  const sub = await currentSub(); if (!sub) return renderPush();
+  try { await api("POST", "/push/subscribe", { subscription: sub.toJSON(), ...pushPrefs() }); toast("Saved"); } catch (e) { toast(e.message); }
+}
+async function pushOff(quiet) {
+  const sub = await currentSub(); if (!sub) return;
+  try { await api("POST", "/push/unsubscribe", { endpoint: sub.endpoint }); } catch {}
+  try { await sub.unsubscribe(); } catch {}
+  if (!quiet) { toast("Notifications are off for this device"); renderPush(); }
+}
+
 async function saveSettings() {
   const name = $("#s-me").value.trim(), hname = $("#s-name").value.trim();
   store.putHouse({ currency: $("#s-cur").value, ...($("#s-thr") ? { sharedSpendThreshold: Number($("#s-thr").value) || 150 } : {}) });
@@ -105,7 +164,10 @@ document.addEventListener("click", async e => {
     case "auth-mode": showAuth(t.dataset.mode); break;
     case "copy-invite": try { await navigator.clipboard.writeText(inviteLink()); toast("Copied the invite link"); } catch { $("#s-code").select(); toast("Copy the code from the box"); } break;
     case "new-invite": try { applyMe(await api("POST", "/household/invite")); $("#s-code").value = S.household.inviteCode; toast("New code made. The old one no longer works."); } catch (err) { toast(err.message); } break;
-    case "signout": try { await api("POST", "/auth/logout"); } catch {} location.reload(); break;
+    case "signout": await pushOff(true); try { await api("POST", "/auth/logout"); } catch {} location.reload(); break;
+    case "push-on": t.disabled = true; pushOn(); break;
+    case "push-off": pushOff(); break;
+    case "push-test": { const sub = await currentSub(); try { const r = await api("POST", "/push/test", { endpoint: sub && sub.endpoint }); toast(r.ok ? "Sent. It should pop up in a moment." : "Could not reach this device. Turn notifications off and on again."); } catch (err) { toast(err.message); } break; }
     case "retry": boot(); break;
   }
 });
@@ -121,6 +183,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   if (e.target.id === "ts-rep") $("#ts-rep-custom").hidden = e.target.value !== "custom";
+  if (["p-daily", "p-hour", "p-assigned"].includes(e.target.id)) pushSave();
 });
 document.addEventListener("keydown", e => {
   if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey && S.mode === "live" && !$("#layer").innerHTML && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) { const q = $("#qt-text"); if (q) { e.preventDefault(); q.focus(); } }
@@ -150,6 +213,7 @@ async function boot() {
     return;
   }
   document.body.classList.remove("signed-out");
+  if (pushSupported()) swReg().catch(() => {});
   lastSync = null; S.tasks.clear();
   for (const k of Object.keys(COLLS)) S[k].clear();
   await pull();

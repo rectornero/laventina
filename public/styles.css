@@ -295,3 +295,5 @@ body.signed-out header.top nav, body.signed-out .top-row .iconbtn { display: non
 .loading .logo { width: 56px; height: 56px }
 .worth { box-shadow: 0 10px 30px rgba(122,91,201,.25) }
 .chip { font-weight: 700 }
+.push-panel { display: grid; gap: 10px }
+.push-panel .check select { width: auto; padding: 4px 8px; margin-left: 4px }
