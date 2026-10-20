@@ -24,7 +24,10 @@ export async function route(req) {
   // Writes need this header: a plain cross-site form or image cannot send it, so it doubles as CSRF protection.
   if (method !== "GET" && req.headers.get("x-laventina") !== "1") throw new HttpError(403, "bad_origin", "Missing app header.");
 
-  if (path === "/health") return json({ ok: true, db: !!(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL), ai: aiEnabled() });
+  if (path === "/health") {
+    let dbOk = false; try { await q("select 1"); dbOk = true; } catch {}
+    return json({ ok: true, db: dbOk, ai: aiEnabled() });
+  }
 
   if (path === "/auth/signup" && method === "POST") {
     const uid = await signup(await body(req));

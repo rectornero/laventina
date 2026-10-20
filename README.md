@@ -13,15 +13,16 @@ A light task manager for a home shared by two (or more) people. One task list si
 - `public/`: the web app, plain HTML, CSS and scripts (no build step).
 - `netlify/functions/api.mjs`: the API at `/api/*` (sign-in, sync, tasks, records, files, Claude).
 - `netlify/functions/daily.mjs`: a scheduled function that creates house tasks every morning.
-- Data lives in **Neon Postgres** through Netlify DB (`NETLIFY_DATABASE_URL`). Tables are created on first request (`lib/schema.mjs`).
+- Data lives in **Netlify Database** (managed Postgres, powered by Neon) through `@netlify/database`. The schema is the migration in `netlify/database/migrations/`, which every deploy applies (`lib/schema.mjs` holds the same SQL for tests).
 - Photos and scans live in **Netlify Blobs** and are only served to signed-in members of the household.
 
 ## Setting it up on Netlify
 
-1. Import this repository as a new Netlify site. No build settings are needed (`netlify.toml` has them).
-2. Add Netlify DB (Neon) to the site. It sets `NETLIFY_DATABASE_URL`.
-3. Optional: add `ANTHROPIC_API_KEY` as an environment variable to turn on photo reading and Ask.
-4. Open the site, choose **Start a household**, then send the invite code from Settings to the other person.
+1. Create a Netlify site from this repository. No build settings are needed (`netlify.toml` has them).
+2. The first deploy provisions the database and applies the migration, because `@netlify/database` is a dependency.
+3. Make sure the site is public (Project configuration, Access control), so the people you invite can reach it.
+4. Optional: add `ANTHROPIC_API_KEY` as an environment variable to turn on photo reading and Ask.
+5. Open the site, choose **Start a household**, then send the invite code from Settings to the other person.
 
 ## Working on it locally
 

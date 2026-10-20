@@ -125,3 +125,10 @@ test("desiredTasks: a late reminder is due a week before the deadline, not in th
   assert.equal(t.dueOn, "2026-11-07");
   assert.equal(t.title, "Renew or switch Iberdrola by 14 Nov");
 });
+
+test("the Netlify migration matches the schema", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { SCHEMA } = await import("../lib/schema.mjs");
+  const sql = await readFile(new URL("../netlify/database/migrations/20261020070000_initial_schema.sql", import.meta.url), "utf8");
+  assert.equal(sql.trim(), SCHEMA.trim());
+});

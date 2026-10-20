@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
-    "@neondatabase/serverless": "^1.2.0",
-    "@netlify/blobs": "^11.1.4"
+    "@netlify/blobs": "^11.1.4",
+    "@netlify/database": "^2.0.1"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10"
