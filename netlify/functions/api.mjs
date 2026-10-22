@@ -4,7 +4,7 @@ import { sync, putRecord, deleteRecord, putTask, deleteTask } from "../../lib/da
 import { generate, generateIfStale } from "../../lib/generate.mjs";
 import { saveFile, readFile, deleteFile } from "../../lib/files.mjs";
 import { askClaude, aiEnabled } from "../../lib/ai.mjs";
-import { pushEnabled, publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
+import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
 
@@ -12,10 +12,15 @@ async function body(req) {
   try { return await req.json(); } catch { throw new HttpError(400, "bad_json", "The request body was not valid JSON."); }
 }
 
+// Notifications are optional: if the keys can't be read, the app just doesn't offer them.
+async function pushInfo() {
+  try { return { publicKey: await publicKey() }; } catch (e) { console.error("push keys", e); return null; }
+}
+
 async function me(user, hid) {
   const h = (await q("select id, name, invite_code from households where id = $1", [hid]))[0];
   const members = await q("select u.id, u.name, u.color, m.role from members m join users u on u.id = m.user_id where m.household_id = $1 order by m.joined_at", [hid]);
-  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled(), push: pushEnabled() ? { publicKey: publicKey() } : null };
+  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled(), push: await pushInfo() };
 }
 
 export async function route(req) {

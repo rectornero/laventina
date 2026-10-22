@@ -25,7 +25,7 @@ A light task manager for a home shared by two (or more) people. One task list si
 2. The first deploy provisions the database and applies the migration, because `@netlify/database` is a dependency.
 3. Make sure the site is public (Project configuration, Access control), so the people you invite can reach it.
 4. Optional: add `ANTHROPIC_API_KEY` as an environment variable to turn on photo reading and Ask.
-5. For push notifications, add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (make a pair with `npx web-push generate-vapid-keys`), and optionally `VAPID_SUBJECT` (the site URL or a `mailto:`). On iPhone, notifications need Laventina added to the Home Screen first.
+5. Push notifications need no setup: the app makes its own key pair on first use and keeps it in the database. To use your own pair instead, set both `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (and optionally `VAPID_SUBJECT`). On iPhone, notifications need Laventina added to the Home Screen first.
 6. Optional: add `ARTACHE_TOKEN` (an `art_...` token from Artache Settings) so every production deploy posts to the Artache Updates feed under `rectornero/laventina`.
 7. Open the site, choose **Start a household**, then send the invite code from Settings to the other person.
 

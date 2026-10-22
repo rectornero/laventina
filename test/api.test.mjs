@@ -219,3 +219,12 @@ test("the house bell rings everyone else, thank-yous reach the doer, and Sunday 
   assert.equal(sent.length, n, "once a week");
   delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
 });
+
+test("without keys in the environment, the app makes its own notification keys once and keeps them", async () => {
+  delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
+  const a = (await nero("GET", "/me")).body.push, b = (await sam("GET", "/me")).body.push;
+  assert.ok(a && /^[A-Za-z0-9_-]{80,}$/.test(a.publicKey));
+  assert.equal(a.publicKey, b.publicKey);
+  const rows = await pg.query("select count(*)::int as n from app_config where key = 'vapid'");
+  assert.equal(rows.rows[0].n, 1);
+});
