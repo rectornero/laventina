@@ -153,19 +153,69 @@ test("push: assigned tasks ring the assignee, mornings bring a digest, dead devi
   await nero("PUT", "/tasks/t_priv", { data: { title: "Secret", assigneeId: samId, visibility: "private" } });
   assert.equal(sent.length, 1, "no ping for unchanged assignee, self-assignment, or private tasks");
 
-  // 06:30 UTC is 08:30 in Madrid: past the chosen hour, so the digest goes out once.
+  // Days after today, so the check doesn't depend on when the tests run. 06:30 UTC is 07:30 or 08:30 in Madrid: use 07:30 UTC to be past 08:00 either way.
+  const day = (n) => addDays(new Date().toISOString().slice(0, 10), n);
   sent.length = 0;
-  await sendDigests(new Date("2026-10-21T06:30:00Z"));
+  await sendDigests(new Date(day(2) + "T07:30:00Z"));
   assert.equal(sent.length, 1); assert.match(sent[0].title, /things? for today/); assert.match(sent[0].body, /Take the bins out!/); assert.match(sent[0].body, /overdue/);
   assert.ok(!/Secret/.test(sent[0].body));
-  await sendDigests(new Date("2026-10-21T07:30:00Z"));
+  await sendDigests(new Date(day(2) + "T08:30:00Z"));
   assert.equal(sent.length, 1, "one digest per day");
-  await sendDigests(new Date("2026-10-22T05:30:00Z"));
+  await sendDigests(new Date(day(3) + "T05:00:00Z"));
   assert.equal(sent.length, 1, "not before the chosen hour");
-
   gone.add(sub.endpoint);
-  await sendDigests(new Date("2026-10-22T06:30:00Z"));
+  await sendDigests(new Date(day(3) + "T07:30:00Z"));
   assert.equal((await sam("POST", "/push/device", { endpoint: sub.endpoint })).body.subscribed, false, "a 410 removes the device");
   assert.equal(digestMessage([{ title: "A", dueOn: "2026-10-20" }], "2026-10-20").title, "1 thing for today");
+  delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
+});
+
+test("the house bell rings everyone else, thank-yous reach the doer, and Sunday brings a recap", async () => {
+  const { setSender, sendRecaps, localNow } = await import("../lib/push.mjs");
+  process.env.VAPID_PUBLIC_KEY = "test-public"; process.env.VAPID_PRIVATE_KEY = "test-private";
+  const sent = [];
+  setSender(async (sub, payload, opts) => sent.push({ to: sub.endpoint, urgency: opts.urgency, ...JSON.parse(payload) }));
+  const samSub = { endpoint: "https://push.example/sam-2", keys: { p256dh: "BPkey", auth: "authkey" } };
+  const neroSub = { endpoint: "https://push.example/nero-1", keys: { p256dh: "BPkey", auth: "authkey" } };
+  await sam("POST", "/push/subscribe", { subscription: samSub, tz: "UTC", hour: 8 });
+  await nero("POST", "/push/subscribe", { subscription: neroSub, tz: "UTC", hour: 8 });
+  await eve("POST", "/push/subscribe", { subscription: { ...samSub, endpoint: "https://push.example/eve" }, tz: "UTC" });
+
+  let r = await nero("POST", "/bell", { message: "  Dinner's   ready  " });
+  assert.equal(r.status, 200);
+  assert.deepEqual(sent.map(x => x.to), [samSub.endpoint], "rings the other member, not the ringer or another household");
+  assert.equal(sent[0].body, "Dinner's ready"); assert.match(sent[0].title, /Nero rang the house bell/); assert.equal(sent[0].urgency, "high");
+  assert.equal((await nero("POST", "/bell", {})).status, 429, "no hammering the bell");
+  const s = (await sam("GET", "/sync")).body;
+  assert.ok(s.records.some(x => x.kind === "bells" && x.data.message === "Dinner's ready"), "the ring shows up in the app too");
+  assert.equal((await sam("PUT", "/records/bells/fake", { data: { message: "x" } })).status, 400, "bells only come from ringing");
+
+  // Sam turns the bell off on their phone.
+  await sam("POST", "/push/subscribe", { subscription: samSub, tz: "UTC", hour: 8, bell: false });
+  sent.length = 0;
+  await sam("POST", "/bell", { message: "Door" });
+  assert.deepEqual(sent.map(x => x.to), [neroSub.endpoint]);
+
+  // Thanks
+  sent.length = 0;
+  await sam("PUT", "/tasks/t_dishes", { data: { title: "Dishes", status: "done", doneAt: new Date().toISOString(), doneBy: (await sam("GET", "/me")).body.user.id } });
+  assert.equal((await sam("POST", "/tasks/t_dishes/thanks")).status, 400, "no thanking yourself");
+  assert.equal((await nero("POST", "/tasks/t_dishes/thanks")).status, 200);
+  assert.equal((await nero("POST", "/tasks/t_dishes/thanks")).body.already, true);
+  assert.deepEqual(sent.map(x => x.to), [samSub.endpoint]); assert.match(sent[0].title, /Nero says thanks/);
+  const t = (await nero("GET", "/sync")).body.tasks.find(x => x.id === "t_dishes");
+  assert.equal(t.data.extra.thanks.length, 1);
+  assert.equal((await eve("POST", "/tasks/t_dishes/thanks")).status, 404);
+
+  // Recap: next Sunday 19:30 UTC.
+  sent.length = 0;
+  const d = new Date(); d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7 || 7)); d.setUTCHours(19, 30, 0, 0);
+  assert.equal(localNow("UTC", d).weekday, "Sun");
+  await sendRecaps(new Date(d.getTime() - 3 * 3600000));
+  assert.equal(sent.length, 0, "not before Sunday evening");
+  await sendRecaps(d);
+  assert.ok(sent.some(x => x.to === samSub.endpoint && x.title === "Your week at home" && /Dishes|done/.test(x.body)));
+  const n = sent.length; await sendRecaps(new Date(d.getTime() + 3600000));
+  assert.equal(sent.length, n, "once a week");
   delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
 });

@@ -9,6 +9,9 @@ self.addEventListener("push", e => {
     body: m.body || "",
     tag: m.tag || undefined,
     renotify: !!m.tag,
+    // The bell should feel like a bell: a ring pattern, and it stays until someone looks.
+    vibrate: m.tag === "bell" ? [180, 80, 180, 80, 400] : undefined,
+    requireInteraction: m.tag === "bell",
     icon: "/icon-192.png",
     badge: "/badge-72.png",
     data: { url: m.url || "/" }

@@ -4,7 +4,7 @@ import { sync, putRecord, deleteRecord, putTask, deleteTask } from "../../lib/da
 import { generate, generateIfStale } from "../../lib/generate.mjs";
 import { saveFile, readFile, deleteFile } from "../../lib/files.mjs";
 import { askClaude, aiEnabled } from "../../lib/ai.mjs";
-import { pushEnabled, publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned } from "../../lib/push.mjs";
+import { pushEnabled, publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
 
@@ -66,6 +66,8 @@ export async function route(req) {
     if (method === "PUT") return json(await putRecord(hid, user.id, m[1], decodeURIComponent(m[2]), await body(req)));
     if (method === "DELETE") return json(await deleteRecord(hid, user.id, m[1], decodeURIComponent(m[2])));
   }
+  if (path === "/bell" && method === "POST") return json(await ringBell(hid, user, await body(req)));
+  if ((m = path.match(/^\/tasks\/([^/]+)\/thanks$/)) && method === "POST") return json(await thank(hid, user, decodeURIComponent(m[1])));
   if ((m = path.match(/^\/tasks\/([^/]+)$/))) {
     if (method === "PUT") {
       const id = decodeURIComponent(m[1]), b = await body(req);

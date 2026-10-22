@@ -297,3 +297,35 @@ body.signed-out header.top nav, body.signed-out .top-row .iconbtn { display: non
 .chip { font-weight: 700 }
 .push-panel { display: grid; gap: 10px }
 .push-panel .check select { width: auto; padding: 4px 8px; margin-left: 4px }
+
+/* Together: bell, notifications card, fridge notes, thanks */
+.bellbtn { color: var(--accent-strong); padding: 0 10px !important }
+.bellbtn.ringing svg, .bell-ring.ringing svg { animation: ring .9s ease-in-out 2; transform-origin: 50% 10% }
+@keyframes ring { 0%,100% { transform: rotate(0) } 15% { transform: rotate(16deg) } 30% { transform: rotate(-14deg) } 45% { transform: rotate(10deg) } 60% { transform: rotate(-6deg) } 75% { transform: rotate(3deg) } }
+@media (prefers-reduced-motion: reduce) { .bellbtn.ringing svg, .bell-ring.ringing svg { animation: none } }
+.bell-form { display: grid; gap: 14px }
+.wrap-chips { flex-wrap: wrap }
+.wrap-chips .chip { white-space: normal }
+.bell-ring { padding: 14px; font-size: 17px; border-radius: 14px }
+.bell-log { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px }
+.bell-line { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font-size: 14px }
+.small-note { font-size: 13px; margin: 0 }
+.nudge { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; background: var(--accent-soft); border-color: transparent; margin: 0 0 14px }
+.nudge p { margin: 4px 0 10px; font-size: 14px }
+.nudge-icon { width: 36px; height: 36px; border-radius: 99px; background: var(--surface); color: var(--accent-strong); display: inline-flex; align-items: center; justify-content: center }
+.bell-banner { display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; background: #FFF4C2; border-radius: var(--r); padding: 10px 12px; margin: 0 0 14px; font-size: 15px }
+.bell-banner .iconbtn { height: 30px; min-width: 30px; padding: 0 8px }
+.notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px }
+.note { border-radius: 4px 4px 14px 4px; padding: 12px 12px 8px; box-shadow: 0 1px 2px rgba(43,37,65,.08), 0 4px 10px rgba(43,37,65,.06); display: grid; gap: 8px; align-content: space-between; min-height: 110px; border: 0; text-align: left; transform: rotate(-.6deg) }
+.note:nth-child(2n) { transform: rotate(.7deg) }
+.note p { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 15px }
+.note textarea { background: transparent; border: 0; resize: vertical; font: inherit; width: 100%; padding: 0 }
+.note textarea:focus { outline: none }
+.note-foot { display: flex; align-items: center; gap: 6px; font-size: 12px; flex-wrap: wrap }
+.note-foot .avatar { width: 20px; height: 20px; font-size: 9px }
+.note-x { margin-left: auto; font-size: 12px; color: var(--muted) }
+.empty-note { background: transparent; box-shadow: none; border: 1px dashed var(--line); transform: none; min-height: 80px; grid-column: 1 / -1 }
+.note-colors { display: inline-flex; gap: 4px; margin-right: auto }
+.swatch { width: 18px; height: 18px; border-radius: 99px; border: 1px solid rgba(43,37,65,.15); padding: 0 }
+.thanked { font-size: 13px; color: var(--accent-strong); font-weight: 700; white-space: nowrap }
+.claim.thank { color: var(--accent-strong) }

@@ -69,8 +69,8 @@ function taskRowHTML(t, opts = {}) {
     blk ? `<span>Waiting on: ${esc(blk.title)}</span>` : "",
     done && t.doneBy && S.members.length > 1 ? `<span>Done by ${esc(memberName(t.doneBy))}</span>` : ""
   ].filter(Boolean).join("");
-  let side = "";
-  if (S.members.length > 1) {
+  let side = done ? thanksSideHTML(t) : "";
+  if (S.members.length > 1 && !done) {
     if (t.assigneeId) side = avatarHTML(t.assigneeId, "For " + memberName(t.assigneeId));
     else if (!done) side = `<button class="claim" data-act="task-claim" data-id="${esc(t.id)}">I'll do it</button>`;
   }
@@ -227,10 +227,12 @@ function fairnessHTML() {
 }
 VIEWS.today = {
   shell: () => `<div id="view-today"><div class="hello"><span class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }))}</span><h2>${greeting()}${S.me ? ", " + esc(S.me.name.split(" ")[0]) : ""}</h2></div>
-    ${quickAddHTML()}<div id="today-who"></div><div id="today-list"></div></div>`,
+    <div id="today-top"></div>${quickAddHTML()}<div id="today-who"></div><div id="today-list"></div><div id="today-fridge"></div></div>`,
   live() {
     const el = $("#today-list"); if (!el) return;
     $("#today-who").innerHTML = whoChipsHTML();
+    $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML();
+    if (!$("#note-form")) $("#today-fridge").innerHTML = fridgeHTML();
     const td = todayISO(), wk = addDays(td, 7);
     const open = openTasks().filter(t => actionable(t) && whoMatch(t));
     const late = open.filter(t => t.dueOn && t.dueOn < td).sort(taskSort);

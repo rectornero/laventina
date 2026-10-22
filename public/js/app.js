@@ -99,14 +99,17 @@ async function renderPush() {
   if (Notification.permission === "denied") return say(`<span>Notifications are blocked for Laventina in this browser's site settings. Allow them there, then come back here.</span>`);
   const sub = await currentSub();
   const dev = sub ? await api("POST", "/push/device", { endpoint: sub.endpoint }).catch(() => ({ subscribed: false })) : { subscribed: false };
-  if (!dev.subscribed) return say(`<span>Get a morning list of what is due, and a ping when someone gives you a task.</span><div><button type="button" class="btn primary small" data-act="push-on">Turn on for this device</button></div>`);
+  if (!dev.subscribed) return say(`<span>Hear the house bell, get a morning list of what is due, and a ping when someone gives you a task.</span><div><button type="button" class="btn primary small" data-act="push-on">Turn on for this device</button></div>`);
   say(`<label class="check"><input type="checkbox" id="p-daily" ${dev.daily ? "checked" : ""}> Morning list of what is due, at
       <select id="p-hour" aria-label="Time of the morning list">${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === dev.hour ? "selected" : ""}>${hourLabel(h)}</option>`).join("")}</select></label>
-    <label class="check"><input type="checkbox" id="p-assigned" ${dev.assigned ? "checked" : ""}> When someone gives me a task</label>
+    <label class="check"><input type="checkbox" id="p-assigned" ${dev.assigned ? "checked" : ""}> When someone gives me a task or says thanks</label>
+    <label class="check"><input type="checkbox" id="p-bell" ${dev.bell !== false ? "checked" : ""}> The house bell</label>
+    <label class="check"><input type="checkbox" id="p-weekly" ${dev.weekly !== false ? "checked" : ""}> Sunday evening recap of our week</label>
     <div class="actions" style="justify-content:flex-start"><button type="button" class="btn small" data-act="push-test">Send a test</button><button type="button" class="btn small" data-act="push-off">Turn off on this device</button></div>`);
 }
 function pushPrefs() {
-  return { daily: $("#p-daily") ? $("#p-daily").checked : true, assigned: $("#p-assigned") ? $("#p-assigned").checked : true,
+  const on = id => $("#" + id) ? $("#" + id).checked : true;
+  return { daily: on("p-daily"), assigned: on("p-assigned"), bell: on("p-bell"), weekly: on("p-weekly"),
     hour: $("#p-hour") ? Number($("#p-hour").value) : 8, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" };
 }
 async function pushOn() {
@@ -117,7 +120,7 @@ async function pushOn() {
     await api("POST", "/push/subscribe", { subscription: sub.toJSON(), ...pushPrefs() });
     toast("Notifications are on for this device");
   } catch (e) { toast(e.message || "Could not turn notifications on"); }
-  renderPush();
+  renderPush(); refreshPushState();
 }
 async function pushSave() {
   const sub = await currentSub(); if (!sub) return renderPush();
@@ -127,7 +130,7 @@ async function pushOff(quiet) {
   const sub = await currentSub(); if (!sub) return;
   try { await api("POST", "/push/unsubscribe", { endpoint: sub.endpoint }); } catch {}
   try { await sub.unsubscribe(); } catch {}
-  if (!quiet) { toast("Notifications are off for this device"); renderPush(); }
+  if (!quiet) { toast("Notifications are off for this device"); renderPush(); refreshPushState(); }
 }
 
 async function saveSettings() {
@@ -165,7 +168,7 @@ document.addEventListener("click", async e => {
     case "copy-invite": try { await navigator.clipboard.writeText(inviteLink()); toast("Copied the invite link"); } catch { $("#s-code").select(); toast("Copy the code from the box"); } break;
     case "new-invite": try { applyMe(await api("POST", "/household/invite")); $("#s-code").value = S.household.inviteCode; toast("New code made. The old one no longer works."); } catch (err) { toast(err.message); } break;
     case "signout": await pushOff(true); try { await api("POST", "/auth/logout"); } catch {} location.reload(); break;
-    case "push-on": t.disabled = true; pushOn(); break;
+    case "push-on": t.disabled = true; pushOn().finally(() => { t.disabled = false; }); break;
     case "push-off": pushOff(); break;
     case "push-test": { const sub = await currentSub(); try { const r = await api("POST", "/push/test", { endpoint: sub && sub.endpoint }); toast(r.ok ? "Sent. It should pop up in a moment." : "Could not reach this device. Turn notifications off and on again."); } catch (err) { toast(err.message); } break; }
     case "retry": boot(); break;
@@ -183,7 +186,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   if (e.target.id === "ts-rep") $("#ts-rep-custom").hidden = e.target.value !== "custom";
-  if (["p-daily", "p-hour", "p-assigned"].includes(e.target.id)) pushSave();
+  if (["p-daily", "p-hour", "p-assigned", "p-bell", "p-weekly"].includes(e.target.id)) pushSave();
 });
 document.addEventListener("keydown", e => {
   if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey && S.mode === "live" && !$("#layer").innerHTML && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) { const q = $("#qt-text"); if (q) { e.preventDefault(); q.focus(); } }
@@ -224,6 +227,7 @@ async function boot() {
   if (location.hash && VIEWS[location.hash.slice(1)]) tab = location.hash.slice(1);
   seedIfNew();
   setTab(tab);
+  refreshPushState();
 }
 document.querySelector("#brand-logo").innerHTML = LOGO;
 boot();
