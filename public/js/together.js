@@ -120,6 +120,24 @@ async function thankTask(t) {
   catch (e) { toast(e.message); pull(); }
 }
 
+// ---------- Reminders before a task is due ----------
+function toggleRemind(btn) {
+  btn.setAttribute("aria-pressed", btn.getAttribute("aria-pressed") !== "true");
+  const time = $("#ts-time"), hint = $("#ts-remind-hint");
+  const on = !!document.querySelector('#ts-remind [aria-pressed="true"]');
+  if (!time.value) { hint.textContent = "Pick a time above, so Laventina knows when."; if (on) time.focus(); return; }
+  hint.textContent = "";
+  if (on && !$("#ts-due").value) $("#ts-due").value = todayISO();
+  if (on && S.pushState !== "on") hint.textContent = S.pushState === "ios-install" ? "On iPhone, add Laventina to your Home Screen to get reminders." : "Turn on notifications (on Today) to get reminders on this device.";
+  // An existing task saves right away; a new one saves with the Save button.
+  if (!TS.isNew) {
+    readTask(); if (!TS.d.title) return;
+    putTask(TS.d);
+    const mins = myReminders(TS.d);
+    toast(mins.length ? `I'll remind you ${mins.join(", ")} min before ${TS.d.dueTime}` : "Reminder off");
+  }
+}
+
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-act]"); if (!t) return;
   switch (t.dataset.act) {
@@ -131,7 +149,11 @@ document.addEventListener("click", e => {
     case "note-color": $("#note-form").style.background = t.dataset.color; break;
     case "note-del": store.del("notes", t.dataset.id); toast("Taken down"); break;
     case "task-thank": thankTask(S.tasks.get(t.dataset.id)); break;
+    case "ts-remind": toggleRemind(t); break;
   }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "ts-time" && e.target.value && $("#ts-remind-hint")) $("#ts-remind-hint").textContent = "";
 });
 document.addEventListener("submit", e => {
   if (e.target.id === "bell-form") { e.preventDefault(); ringBell(); }
