@@ -234,7 +234,7 @@ VIEWS.today = {
   live() {
     const el = $("#today-list"); if (!el) return;
     $("#today-who").innerHTML = "";
-    $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML() + (typeof expiryCardHTML === "function" ? expiryCardHTML() : "");
+    $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML();
     $("#today-brief").innerHTML = briefHTML();
     $("#today-one").innerHTML = oneThingHTML();
     $("#today-noticed").innerHTML = insightsHTML();
