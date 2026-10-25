@@ -108,7 +108,8 @@ function chancesHTML() {
 }
 function openChance(c, prefill = {}) {
   const isNew = !c; const d = c ? { ...c } : { kind: "coupon", ...prefill };
-  openSheet(isNew ? "Catch an opportunity" : d.title, `<form id="chance-form" style="display:grid;gap:14px" data-id="${esc(d.id || "")}">
+  openSheet(isNew ? "Catch an opportunity" : d.title, `<form id="chance-form" style="display:grid;gap:14px" data-id="${esc(d.id || "")}" data-photo="${esc(d.photoId || "")}">
+    ${d.photoId ? `<img class="chance-photo" src="${esc(fileUrl(d.photoId))}" alt="The coupon">` : ""}
     <label class="f">What is it<input type="text" id="ch-title" required value="${esc(d.title)}" placeholder="€7 off at Carrefour"></label>
     <div class="fields">
       <label class="f">Kind<select id="ch-kind">${CHANCE_KINDS.map(([k, l]) => `<option value="${k}" ${d.kind === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
@@ -120,15 +121,22 @@ function openChance(c, prefill = {}) {
     <label class="f">Notes<textarea id="ch-notes" rows="2" placeholder="Code, where the coupon is, what to buy">${esc(d.notes)}</textarea></label>
     ${!isNew && d.status !== "open" ? `<div class="ai-note">${d.status === "caught" ? "Caught" : "Missed"}${d.outcomeAt ? " · " + esc(fmtDate(d.outcomeAt)) : ""}${d.cause ? " · " + esc(d.cause) : ""}${d.lesson ? `<br>${esc(d.lesson)}` : ""}</div>` : ""}
     <div class="actions" style="justify-content:space-between"><div class="actions">${!isNew ? `<button type="button" class="btn danger" data-act="chance-del" data-id="${esc(d.id)}">Delete</button>` : ""}
-      ${!isNew && d.status === "open" ? `<button type="button" class="btn" data-act="chance-missed" data-id="${esc(d.id)}">Missed it</button><button type="button" class="btn" data-act="chance-caught" data-id="${esc(d.id)}">Used it</button>` : ""}</div>
+      ${!isNew && d.status === "open" ? `<button type="button" class="btn" data-act="chance-missed" data-id="${esc(d.id)}">Missed it</button><button type="button" class="btn" data-act="chance-caught" data-id="${esc(d.id)}">Used it</button>` : ""}
+      ${!isNew && d.status === "open" && d.expiresOn ? `<button type="button" class="btn" data-act="cal-chance" data-id="${esc(d.id)}">Add to calendar</button>` : ""}</div>
       <button type="submit" class="btn primary">${isNew ? "Catch it" : "Save"}</button></div></form>`);
 }
 function saveChance() {
   const f = $("#chance-form"), v = id => $("#" + id).value.trim(), n = id => { const x = parseFloat(v(id).replace(",", ".")); return isFinite(x) ? x : undefined; };
   const old = f.dataset.id && S.chances.get(f.dataset.id);
-  const c = { ...(old || { id: newId("c"), status: "open", createdAt: nowISO() }), title: v("ch-title"), kind: v("ch-kind"), value: n("ch-value"), minSpend: n("ch-min"), store: v("ch-store") || undefined, expiresOn: v("ch-exp") || undefined, notes: v("ch-notes") || undefined };
+  const c = { ...(old || { id: newId("c"), status: "open", createdAt: nowISO() }), title: v("ch-title"), kind: v("ch-kind"), value: n("ch-value"), minSpend: n("ch-min"), store: v("ch-store") || undefined, expiresOn: v("ch-exp") || undefined, notes: v("ch-notes") || undefined,
+    photoId: f.dataset.photo || old?.photoId || undefined };
   if (!c.title) return toast("Say what it is first.");
-  // Each open opportunity has a task, so it shows up in the day and gets its reminders.
+  putChance(c);
+  closeSheet();
+  toast(old ? "Saved" : `Caught. It's on your list${c.expiresOn ? " two days before it ends" : ""}.`, !old && c.expiresOn ? { label: "Add to calendar", run: () => calendarFor([chanceEvent(c)], c.title) } : undefined);
+}
+// Save an opportunity. Each open one has a task, so it shows up in the day and gets its reminders.
+function putChance(c) {
   if (c.status === "open") {
     const t = c.taskId && S.tasks.get(c.taskId);
     const td = todayISO(), due = c.expiresOn ? (addDays(c.expiresOn, -2) >= td ? addDays(c.expiresOn, -2) : c.expiresOn < td ? td : c.expiresOn) : undefined;
@@ -139,8 +147,6 @@ function saveChance() {
     putTask(task);
   }
   store.put("chances", c);
-  closeSheet();
-  toast(old ? "Saved" : `Caught. It's on your list${c.expiresOn ? " two days before it ends" : ""}.`);
 }
 function chanceCaught(id, fromTask) {
   const c = S.chances.get(id); if (!c || c.status !== "open") return;

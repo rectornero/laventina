@@ -273,6 +273,7 @@ async function boot() {
   seedIfNew();
   setTab(tab);
   refreshPushState();
+  briefStartup();
 }
 document.querySelector("#brand-logo").innerHTML = LOGO;
 boot();

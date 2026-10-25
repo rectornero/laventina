@@ -94,7 +94,7 @@ VIEWS.expiring = {
   shell: () => `<div id="view-expiring"><div class="hello"><span class="eyebrow">Before it runs out</span><h2>Expiring</h2></div>
     <div class="actions xp-add" style="justify-content:flex-start">
       <label class="btn primary" for="xp-photo">Snap a coupon</label><input type="file" id="xp-photo" accept="image/*" capture="environment" hidden>
-      <button class="btn" data-act="chance-new">Add a coupon</button><button class="btn" data-act="xp-new">Add something else</button></div>
+      <button class="btn" data-act="chance-new">Add a coupon</button><button class="btn" data-act="xp-new">Add something else</button><button class="btn" data-act="cal-all">Put it all in my calendar</button></div>
     <div id="xp-live"></div></div>`,
   live() {
     const el = $("#xp-live"); if (!el) return;
@@ -148,7 +148,7 @@ function openExpiry(key) {
     <p style="margin:0"><span class="pill ${stateCls(e)}">${esc(whenLabel(e))}</span> <span class="muted">${esc(lineFor(e))}</span></p>
     ${x && x.notes ? `<p class="muted" style="margin:0">${esc(x.notes)}</p>` : ""}
     ${step ? `<div class="ai-note"><b>How to sort it.</b> ${esc(step)}</div>` : ""}${body}
-    <div class="actions" style="justify-content:flex-end;flex-wrap:wrap">${buttons.map(([a, l, c]) => `<button type="button" class="btn ${c || ""}" data-act="${a}" data-id="${esc(e.ref)}">${esc(l)}</button>`).reverse().join("")}</div></div>`);
+    <div class="actions" style="justify-content:flex-end;flex-wrap:wrap">${e.days >= 0 ? `<button type="button" class="btn" data-act="cal-xp" data-key="${esc(e.key)}">Add to calendar</button>` : ""}${buttons.map(([a, l, c]) => `<button type="button" class="btn ${c || ""}" data-act="${a}" data-id="${esc(e.ref)}">${esc(l)}</button>`).reverse().join("")}</div></div>`);
 }
 function addMonthsISOLocal(iso, n) { return XP().addMonthsISO(iso || todayISO(), n); }
 function actExpiry(act) {
