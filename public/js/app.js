@@ -69,10 +69,49 @@ function openSettings() {
         }).join("")}</div>
         <div class="search"><label class="sr" for="s-newroom">New room</label><input type="text" id="s-newroom" placeholder="Add a room: Attic, Kids' room…"><button type="button" class="btn small" data-act="room-add">Add room</button></div>
       </fieldset>
-      <div class="ai-note">${S.ai ? "Claude is on: it reads photos and receipts and answers questions about your house." : "Claude is off inside the app, so no Netlify credits are spent. To talk with Laventina through Claude, use Connect Claude in the butler's menu."}</div>
+      <fieldset><legend class="eyebrow">Claude and running costs</legend>
+        <div class="ai-note">${S.ai ? "Claude is on: it reads photos and receipts and answers questions about your house." : "Claude is off inside the app, so no Netlify credits are spent. Connect Claude to work with Laventina from any Claude app, on your own Claude plan."}</div>
+        <div class="actions" style="justify-content:flex-start"><button type="button" class="btn small" data-act="claude">Connect Claude</button><button type="button" class="btn small" data-act="costs">Running costs</button></div>
+        <div id="s-extra"></div>
+      </fieldset>
       <div class="actions" style="justify-content:space-between"><button type="button" class="btn" data-act="signout">Sign out</button><button type="submit" class="btn primary">Save</button></div>
     </form>`);
   renderPush();
+}
+
+// ---------- Claude (MCP link) and running costs, shown inside Settings ----------
+async function showClaude() {
+  const box = $("#s-extra"); if (!box) return;
+  let info = { connected: false };
+  try { info = await api("GET", "/connect/claude"); } catch {}
+  box.innerHTML = `<div class="panel"><p>Claude can then see what matters in your household and act on it: tasks, coupons, notes, the bell. It runs on your own Claude plan and never sends anything outside the house.</p>
+    <div id="cl-box">${info.connected ? `<p>Connected${info.used ? `, last used ${esc(new Date(info.used).toLocaleDateString())}` : ""}. For safety the link can't be shown again; make a new one if you need it.</p>` : ""}</div>
+    <div class="actions" style="justify-content:flex-start"><button class="btn primary small" type="button" data-act="claude-new">${info.connected ? "Make a new link" : "Make my link"}</button>${info.connected ? `<button class="btn small" type="button" data-act="claude-off">Disconnect</button>` : ""}</div></div>`;
+}
+async function claudeNew() {
+  try {
+    const r = await api("POST", "/connect/claude");
+    $("#cl-box").innerHTML = `<div class="search"><input type="text" readonly id="cl-url" value="${esc(r.url)}" aria-label="Your Laventina link"><button class="btn small" type="button" data-act="claude-copy">Copy</button></div>
+      <ol><li>In Claude, open <b>Settings</b>, then <b>Connectors</b>.</li><li>Choose <b>Add custom connector</b>, name it Laventina, and paste this link.</li><li>Ask Claude: “What matters in my household today?”</li></ol>
+      <p class="muted">Keep the link private: anyone with it can act as you. Any older link stops working now.</p>`;
+    const b = document.querySelector('[data-act="claude-new"]'); if (b) b.textContent = "Make a new link";
+  } catch (e) { toast(e.message); }
+}
+// What Laventina costs to run, by its own meter (lib/meter.mjs). Netlify's Usage page has the real balance.
+async function showCosts() {
+  const box = $("#s-extra"); if (!box) return;
+  box.innerHTML = `<div class="panel"><span class="muted">Counting…</span></div>`;
+  let r;
+  try { r = await api("GET", "/costs"); } catch (e) { box.innerHTML = `<div class="panel">${esc(e.message)}</div>`; return; }
+  const fmt = d => new Date(d + "T12:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const n = x => Number(x).toLocaleString(undefined, { maximumFractionDigits: x >= 100 ? 0 : 1 });
+  const days = r.days.filter(d => d.measured);
+  const top = Math.max(1, ...days.map(d => d.total));
+  const rows = days.slice().reverse().map(d => `<div class="cost-day"><span>${esc(fmt(d.date))}</span><i style="--w:${Math.max(2, Math.round(100 * d.total / top))}%" title="Compute ${d.compute}, database ${d.database}, deploys ${d.deploys}"></i><b>${n(d.total)}</b></div>`).join("");
+  box.innerHTML = `<div class="panel"><p><b>${n(r.spent)}</b> credits so far, from ${esc(fmt(r.cycle.start))} to ${esc(fmt(r.cycle.end))}.</p>
+    <p>At this pace, about <b>${n(r.projected)}</b> by the end of the cycle: ${r.share}% of your ${n(r.budget)}. A usual day costs about ${n(r.perDay)}.</p>
+    ${rows ? `<div class="cost-days" aria-label="Credits per day">${rows}</div>` : `<p class="muted">Counting started today, so there is nothing to show yet.</p>`}
+    <p class="muted">${esc(r.note)} <a href="https://app.netlify.com/teams/overgame-director" target="_blank" rel="noopener">Open Netlify</a> (Usage &amp; billing)</p></div>`;
 }
 
 // ---------- Push notifications ----------
@@ -172,6 +211,11 @@ document.addEventListener("click", async e => {
     case "push-on": t.disabled = true; pushOn().finally(() => { t.disabled = false; }); break;
     case "push-off": pushOff(); break;
     case "push-test": { const sub = await currentSub(); try { const r = await api("POST", "/push/test", { endpoint: sub && sub.endpoint }); toast(r.ok ? "Sent. It should pop up in a moment." : "Could not reach this device. Turn notifications off and on again."); } catch (err) { toast(err.message); } break; }
+    case "claude": showClaude(); break;
+    case "claude-new": claudeNew(); break;
+    case "claude-off": try { await api("DELETE", "/connect/claude"); } catch {} showClaude(); break;
+    case "claude-copy": try { await navigator.clipboard.writeText($("#cl-url").value); toast("Copied the link"); } catch { $("#cl-url").select(); } break;
+    case "costs": showCosts(); break;
     case "retry": boot(); break;
   }
 });

@@ -418,4 +418,9 @@ nav.tabs::-webkit-scrollbar { display: none }
 .xp-brief .link { text-align: left; font-size: 14px; color: var(--ink); text-decoration: none }
 
 /* The butler's rooms: a way back to the butler */
-.back-butler { text-decoration: none; color: var(--accent-strong); font-weight: 800 }
+
+/* Running costs, in Settings */
+.cost-days { display: grid; gap: 6px; margin: 12px 0 }
+.cost-day { display: grid; grid-template-columns: 64px 1fr 44px; align-items: center; gap: 10px; font-size: 14px; color: var(--muted) }
+.cost-day i { display: block; height: 10px; width: var(--w); background: var(--accent); border-radius: 0 4px 4px 0 }
+.cost-day b { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums }
