@@ -169,7 +169,7 @@ async function pull() {
   catch (e) { if (e.code !== "offline") console.error(e); }
   finally { pulling = false; }
 }
-setInterval(() => { if (document.visibilityState === "visible") pull(); }, 12000);
+setInterval(() => { if (document.visibilityState === "visible") pull(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
 
 // ---------- Flags & insight ----------

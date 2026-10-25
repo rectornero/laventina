@@ -7,6 +7,7 @@ import { askClaude, aiEnabled } from "../../lib/ai.mjs";
 import { brief, history, talk, act, greet } from "../../lib/butler.mjs";
 import { makeCtx } from "../../lib/tools.mjs";
 import { newToken, tokenInfo, revokeTokens } from "../../lib/mcp.mjs";
+import { replanReminders, replanNotices } from "../../lib/wake.mjs";
 import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
@@ -85,9 +86,10 @@ export async function route(req) {
       if (b.data.assigneeId && b.data.assigneeId !== (before && before.assignee_id)) {
         try { await notifyAssigned(hid, user, { ...b.data, id }); } catch (e) { console.error("notify", e); }
       }
+      await replanReminders();
       return json(out);
     }
-    if (method === "DELETE") return json(await deleteTask(hid, user.id, decodeURIComponent(m[1])));
+    if (method === "DELETE") { const out = await deleteTask(hid, user.id, decodeURIComponent(m[1])); await replanReminders(); return json(out); }
   }
   if (path === "/files" && method === "POST") return json(await saveFile(hid, user.id, req));
   if ((m = path.match(/^\/files\/([^/]+)$/))) {
@@ -95,8 +97,8 @@ export async function route(req) {
     if (method === "DELETE") { await deleteFile(hid, m[1]); return json({ ok: true }); }
   }
   if (path === "/push/device" && method === "POST") return json(await deviceSettings(user.id, (await body(req)).endpoint));
-  if (path === "/push/subscribe" && method === "POST") return json(await subscribe(hid, user.id, await body(req)));
-  if (path === "/push/unsubscribe" && method === "POST") return json(await unsubscribe(user.id, (await body(req)).endpoint));
+  if (path === "/push/subscribe" && method === "POST") { const out = await subscribe(hid, user.id, await body(req)); await replanNotices(); return json(out); }
+  if (path === "/push/unsubscribe" && method === "POST") { const out = await unsubscribe(user.id, (await body(req)).endpoint); await replanNotices(); return json(out); }
   if (path === "/push/test" && method === "POST") return json(await sendTest(user.id, (await body(req)).endpoint));
   // The butler: what matters now, the conversation, and tapped replies. The page sends its time zone.
   if (path.startsWith("/butler")) {
