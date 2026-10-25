@@ -207,9 +207,9 @@ test("the house bell rings everyone else, thank-yous reach the doer, and Sunday 
   assert.equal(t.data.extra.thanks.length, 1);
   assert.equal((await eve("POST", "/tasks/t_dishes/thanks")).status, 404);
 
-  // Recap: next Sunday 19:30 UTC.
+  // Recap: this coming Sunday (today, if it is Sunday) at 19:30 UTC, so the dishes done today fall inside its week.
   sent.length = 0;
-  const d = new Date(); d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7 || 7)); d.setUTCHours(19, 30, 0, 0);
+  const d = new Date(); d.setUTCDate(d.getUTCDate() + (7 - d.getUTCDay()) % 7); d.setUTCHours(19, 30, 0, 0);
   assert.equal(localNow("UTC", d).weekday, "Sun");
   await sendRecaps(new Date(d.getTime() - 3 * 3600000));
   assert.equal(sent.length, 0, "not before Sunday evening");

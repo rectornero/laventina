@@ -38,7 +38,7 @@ const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
 // ---------- State ----------
 const S = {
   items: new Map(), rooms: new Map(), shopping: new Map(), lists: new Map(), plans: new Map(), ulog: new Map(), charges: new Map(), expenses: new Map(), settlements: new Map(),
-  docs: new Map(), projects: new Map(), finishes: new Map(), wish: new Map(), decisions: new Map(), notes: new Map(), bells: new Map(), tasks: new Map(),
+  docs: new Map(), projects: new Map(), finishes: new Map(), wish: new Map(), decisions: new Map(), notes: new Map(), bells: new Map(), coach: new Map(), chances: new Map(), tasks: new Map(),
   house: { name: "Our home", currency: "EUR", sharedSpendThreshold: 150 }, upkeep: { hemisphere: "north", flags: {} },
   me: null, members: [], household: null, ai: false, push: null, pushState: "off",
   mode: "loading", tab: "today", lastHouseTab: "overview", q: "", room: "all", flag: "all", sweepRoom: null, swept: new Set(), askText: "", askBusy: false,
@@ -98,7 +98,7 @@ function clean(o) {
   return r;
 }
 // App key -> record kind on the server
-const COLLS = { items: "items", rooms: "rooms", shopping: "shopping", lists: "lists", plans: "plans", ulog: "upkeepLog", charges: "charges", expenses: "expenses", settlements: "settlements", docs: "documents", projects: "projects", finishes: "finishes", wish: "wishlist", decisions: "decisions", notes: "notes", bells: "bells" };
+const COLLS = { items: "items", rooms: "rooms", shopping: "shopping", lists: "lists", plans: "plans", ulog: "upkeepLog", charges: "charges", expenses: "expenses", settlements: "settlements", docs: "documents", projects: "projects", finishes: "finishes", wish: "wishlist", decisions: "decisions", notes: "notes", bells: "bells", coach: "coach", chances: "chances" };
 const KIND_KEY = Object.fromEntries(Object.entries(COLLS).map(([k, v]) => [v, k]));
 const GEN_KINDS = new Set(["plans", "charges", "docs", "items"]);
 let genTimer;
@@ -201,7 +201,7 @@ function missingProof(it) {
 function proofScore(it) { const need = SERIAL_GROUPS.has(catGroup(it.category)) ? 4 : 3; return (need - missingProof(it).length) / need; }
 
 // ---------- Rendering ----------
-const MAIN_TABS = [["today", "Today"], ["upcoming", "Upcoming"], ["lists", "Lists"], ["house", "House"]];
+const MAIN_TABS = [["today", "Home"], ["upcoming", "Upcoming"], ["lists", "Lists"], ["house", "House"], ["progress", "Progress"]];
 const HOUSE_TABS = [["overview", "Overview"], ["inventory", "Inventory"], ["upkeep", "Upkeep"], ["projects", "Projects"], ["money", "Money & papers"], ["shopping", "Stock & shopping"], ["sweep", "Room sweep"], ["ask", "Ask"]];
 const isHouseTab = t => HOUSE_TABS.some(([k]) => k === t);
 let raf = 0;

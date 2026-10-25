@@ -195,6 +195,7 @@ function completeTask(t) {
 function finishTask(t, { quiet, doneBy } = {}) {
   const before = { ...t };
   putTask({ ...t, status: "done", doneAt: nowISO(), doneBy: doneBy || S.me?.id });
+  if (t.extra?.chanceId && typeof chanceCaught === "function") chanceCaught(t.extra.chanceId, true);
   let next = null;
   if (t.repeat && t.repeat.every && !isGenerated(t)) {
     next = newTask({ title: t.title, notes: t.notes, listId: t.listId, assigneeId: t.assigneeId, priority: t.priority, repeat: t.repeat, tags: t.tags, visibility: t.visibility, estMinutes: t.estMinutes, dueTime: t.dueTime, itemId: t.itemId, roomId: t.roomId,
@@ -227,27 +228,26 @@ function fairnessHTML() {
     <div class="fairkey">${per.map(x => `<span>${avatarHTML(x.m.id)} ${esc(x.m.name.split(" ")[0])} <b class="num">${x.n}</b></span>`).join("")}</div></div></section>`;
 }
 VIEWS.today = {
-  shell: () => `<div id="view-today"><div class="hello"><span class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }))}</span><h2>${greeting()}${S.me ? ", " + esc(S.me.name.split(" ")[0]) : ""}</h2></div>
-    <div id="today-top"></div>${quickAddHTML()}<div id="today-who"></div><div id="today-list"></div><div id="today-fridge"></div></div>`,
+  shell: () => `<div id="view-today"><div class="hello"><span class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }))}</span><h2>${greeting()}${S.me ? ", " + esc(S.me.name.split(" ")[0]) : ""}</h2><div id="today-brief"></div></div>
+    <div id="today-top"></div><div id="today-one"></div><div id="today-noticed"></div><div id="today-chances"></div><div id="today-areas"></div><div id="today-coach"></div>${quickAddHTML()}<div id="today-who"></div><div id="today-list"></div><div id="today-fridge"></div></div>`,
   live() {
     const el = $("#today-list"); if (!el) return;
-    $("#today-who").innerHTML = whoChipsHTML();
+    $("#today-who").innerHTML = "";
     $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML();
+    $("#today-brief").innerHTML = briefHTML();
+    $("#today-one").innerHTML = oneThingHTML();
+    $("#today-noticed").innerHTML = insightsHTML();
+    $("#today-areas").innerHTML = areasHTML();
+    $("#today-chances").innerHTML = chancesHTML();
+    if (!$("#coach-form") || !$("#coach-text").value) $("#today-coach").innerHTML = coachHTML();
     if (!$("#note-form")) $("#today-fridge").innerHTML = fridgeHTML();
-    const td = todayISO(), wk = addDays(td, 7);
+    const td = todayISO();
     const open = openTasks().filter(t => actionable(t) && whoMatch(t));
-    const late = open.filter(t => t.dueOn && t.dueOn < td).sort(taskSort);
-    const now = open.filter(t => t.dueOn === td).sort(taskSort);
-    const house = open.filter(t => isGenerated(t) && t.dueOn > td && t.dueOn <= wk).sort(taskSort);
-    const loose = open.filter(t => !t.dueOn && (t.priority || 0) >= 2).sort(taskSort);
+    const due = open.filter(t => t.dueOn && t.dueOn <= td).sort(taskSort);
     const doneToday = allTasks().filter(t => t.status === "done" && (t.doneAt || "").slice(0, 10) === td && whoMatch(t)).sort((a, b) => (b.doneAt || "").localeCompare(a.doneAt || ""));
-    const sec = (title, list, note, opts) => list.length ? `<section class="section"><header><h2>${title}</h2>${note ? `<span class="eyebrow">${note}</span>` : ""}</header>${taskListHTML(list, opts)}</section>` : "";
-    const nothing = !late.length && !now.length;
-    el.innerHTML = (nothing ? `<div class="calm"><h3>Nothing due today</h3><p class="muted">Enjoy the quiet, or pull something forward from Upcoming.</p></div>` : "")
-      + sec("Overdue", late, late.length + " to catch up")
-      + sec("Today", now, "", { noDate: true })
-      + sec("Around the house this week", house, "Upkeep, bills and papers coming up")
-      + sec("Important, no date yet", loose)
+    // The plain list is still here for the days you want it, folded away.
+    const wasOpen = $("#today-all")?.open;
+    el.innerHTML = (due.length ? `<details class="section donebox" id="today-all" ${wasOpen ? "open" : ""}><summary><h2>Everything due today, as a list</h2><span class="eyebrow">${due.length}</span></summary>${whoChipsHTML()}${taskListHTML(due)}</details>` : "")
       + (doneToday.length ? `<details class="section donebox"><summary><h2>Done today</h2><span class="eyebrow">${doneToday.length}</span></summary>${taskListHTML(doneToday)}</details>` : "")
       + fairnessHTML();
   }
@@ -282,15 +282,16 @@ VIEWS.lists = {
   live() {
     const nav = $("#listnav"); if (!nav) return;
     const c = listCounts();
-    const items = [["inbox", "Inbox"], ...listList().map(l => [l.id, l.name]), ["house", "House jobs"], ["projects", "Project steps"], ["done", "Done"]];
+    const items = [["inbox", "Inbox"], ...listList().map(l => [l.id, l.name]), ["themes", "By theme"], ["house", "House jobs"], ["projects", "Project steps"], ["done", "Done"]];
     if (!items.some(([k]) => k === S.listView)) S.listView = "inbox";
     nav.innerHTML = items.map(([k, l]) => `<button class="listbtn" data-act="list-view" data-list="${esc(k)}" aria-current="${S.listView === k}"><span>${esc(l)}</span>${c[k] ? `<span class="muted num">${c[k]}</span>` : ""}</button>`).join("")
       + `<button class="listbtn add" data-act="list-new">+ New list</button>`;
     const lv = S.listView, l = S.lists.get(lv);
-    const title = l ? l.name : { inbox: "Inbox", house: "House jobs", projects: "Project steps", done: "Done" }[lv];
-    const sub = { inbox: "Tasks without a list.", house: "Made for you from Upkeep, bills, papers and warranties. Finish them here and the house keeps its records.", projects: "Steps from your projects, in order. Greyed steps wait on an earlier one.", done: "Finished in the last 30 days." }[lv] || "";
+    const title = l ? l.name : { themes: "By theme", inbox: "Inbox", house: "House jobs", projects: "Project steps", done: "Done" }[lv];
+    const sub = { themes: "Everything open, grouped by what it's about: projects, rooms, house jobs, and shared words.", inbox: "Tasks without a list.", house: "Made for you from Upkeep, bills, papers and warranties. Finish them here and the house keeps its records.", projects: "Steps from your projects, in order. Greyed steps wait on an earlier one.", done: "Finished in the last 30 days." }[lv] || "";
     $("#list-head").innerHTML = `<div class="hello list-hello"><div><h2>${esc(title)}</h2>${sub ? `<p class="muted">${esc(sub)}</p>` : ""}</div>${l ? `<button class="btn small" data-act="list-edit" data-list="${esc(l.id)}">Edit list</button>` : ""}</div>`;
-    $("#qt-form").hidden = ["house", "done", "projects"].includes(lv);
+    $("#qt-form").hidden = ["house", "done", "projects", "themes"].includes(lv);
+    if (lv === "themes") { $("#list-body").innerHTML = themesBodyHTML(); return; }
     let list;
     if (lv === "done") list = allTasks().filter(t => t.status === "done" && daysSince(t.doneAt) <= 30).sort((a, b) => (b.doneAt || "").localeCompare(a.doneAt || ""));
     else if (lv === "house") list = openTasks().filter(t => isGenerated(t) && !t.projectId && visibleNow(t)).sort(taskSort);
@@ -363,6 +364,7 @@ function openTask(t, prefill = {}) {
         <label class="f">Minutes it takes<input type="number" id="ts-min" min="0" value="${esc(d.estMinutes)}" placeholder="optional"></label>
       </div>
       ${remindRowHTML(d)}
+      ${S.ai && !isNew && d.status === "open" ? `<div><button type="button" class="btn small" data-act="coach-task" data-id="${esc(d.id)}">Help me plan this</button></div>` : ""}
       <label class="f">Notes<textarea id="ts-notes" rows="3" placeholder="Details, phone numbers, links">${esc(d.notes)}</textarea></label>
       <fieldset><legend class="eyebrow">Steps</legend><div id="ts-subs" style="display:grid;gap:6px">${(d.subtasks || []).map(subRowHTML).join("")}</div><div><button type="button" class="btn small" data-act="ts-sub-add">Add a step</button></div></fieldset>
       ${it ? `<div class="actions"><span class="muted">About</span><button type="button" class="link" data-act="edit" data-id="${esc(it.id)}">${esc(it.name)}</button></div>` : ""}
@@ -379,6 +381,8 @@ function readTask() {
   const d = TS.d, v = id => ($("#" + id)?.value ?? "").trim();
   const due = v("ts-due") || undefined;
   if (isGenerated(d) && TS.isNew === false && due !== S.tasks.get(d.id)?.dueOn) d.extra = { ...(d.extra || {}), movedDue: true };
+  const prev = !TS.isNew && S.tasks.get(d.id);
+  if (prev && prev.dueOn && due && due > prev.dueOn) d.extra = { ...(d.extra || {}), postponed: (d.extra?.postponed || 0) + 1 };
   Object.assign(d, { title: v("ts-title"), dueOn: due, dueTime: v("ts-time") || undefined, priority: Number(v("ts-pri")) || 0, notes: v("ts-notes") || undefined, estMinutes: Number(v("ts-min")) || undefined });
   if ($("#ts-who")) d.assigneeId = v("ts-who") || undefined;
   if ($("#ts-list")) d.listId = v("ts-list") || undefined;

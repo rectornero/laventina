@@ -333,3 +333,75 @@ body.signed-out header.top nav, body.signed-out .top-row .iconbtn { display: non
 .remind-row .chips { flex-wrap: wrap }
 .remind-hint { font-size: 13px; min-height: 0 }
 .remind-chip { white-space: nowrap }
+
+/* Home: briefing, one thing, noticed, areas, opportunities; Progress */
+nav.tabs { overflow-x: auto; scrollbar-width: none }
+nav.tabs::-webkit-scrollbar { display: none }
+.brief { margin: 6px 0 0; color: var(--muted); font-size: 15px }
+.one-thing { background: linear-gradient(135deg, var(--accent-soft), #FDF2F6); border-radius: 18px; padding: 18px; margin: 0 0 22px; display: grid; gap: 6px }
+.one-thing h3 { font-size: 22px; line-height: 1.25; margin: 0 }
+.one-thing p { margin: 0 0 6px }
+.ins-list { display: grid; gap: 10px }
+.ins { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 6px }
+.ins.tone-win { border-color: #CDEBDB; background: #F6FBF8 }
+.ins h3 { font-size: 16px; margin: 0 } .ins p { margin: 0; font-size: 14px }
+.ins-head { display: flex; justify-content: space-between; align-items: center }
+.ins-x { border: 0; background: none; color: var(--muted); padding: 2px 6px; border-radius: 6px }
+.areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px }
+.area { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; display: grid; overflow: hidden }
+.area-main { border: 0; background: none; text-align: left; padding: 14px 14px 10px; display: grid; gap: 4px; font: inherit; color: inherit }
+.area-main:hover { background: var(--paper) }
+.area-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+.area .state { font-size: 12px; font-weight: 700; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; color: var(--muted) }
+.area .state i { width: 8px; height: 8px; border-radius: 99px; background: var(--good) }
+.area.st-now .state i { background: var(--accent) } .area.st-now .state { color: var(--accent-strong) }
+.area.st-risk .state i { background: var(--warn) } .area.st-risk .state { color: var(--warn) }
+.area-next { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 8px 14px 12px; border-top: 1px dashed var(--line); font-size: 14px }
+.area-next .link { text-align: left; font-weight: 600; color: var(--ink) }
+.area-next .tick { width: 22px; height: 22px }
+.chances { display: grid; gap: 8px }
+.chance { display: grid; grid-template-columns: 70px 1fr; gap: 12px; align-items: center; text-align: left; background: #FFFBEA; border: 1px solid #F3E3A6; border-radius: 14px; padding: 10px 12px; font: inherit; color: inherit }
+.chance.soon { background: #FFF1E0; border-color: #F2C88F }
+.chance > b { font-size: 20px; color: var(--ink) }
+.chance-title { display: block; font-weight: 700 }
+.chance .muted { display: block; font-size: 13px }
+.ask-outcome, .seed { display: grid; gap: 6px; margin-bottom: 8px }
+.seed { background: var(--accent-soft); border-color: transparent }
+.causes-pick { display: grid; gap: 8px }
+.coach-ask { display: grid; gap: 10px }
+.coach-ask textarea { border: 0; background: transparent; resize: vertical; font: inherit; padding: 0 }
+.coach-ask textarea:focus { outline: none }
+.coach { display: grid; gap: 14px }
+.coach-headline { font-size: 18px; font-family: var(--f-display, inherit); margin: 0 }
+.coach h3.eyebrow { margin: 0 0 6px }
+.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.plain li { padding-left: 14px; position: relative } .plain li::before { content: ""; position: absolute; left: 0; top: .65em; width: 5px; height: 5px; border-radius: 99px; background: var(--accent) }
+.plain.wins li::before { background: var(--good) } .plain.risks li::before { background: var(--warn) }
+.plan { display: grid; gap: 8px } .plan h3 { margin: 0; font-size: 16px } .plan p { margin: 0 }
+.steps { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px }
+.coach-wait { display: grid; justify-items: center; gap: 12px; padding: 30px 0 }
+.dots { display: inline-flex; gap: 6px } .dots i { width: 9px; height: 9px; border-radius: 99px; background: var(--accent); animation: dot 1s infinite ease-in-out }
+.dots i:nth-child(2) { animation-delay: .15s } .dots i:nth-child(3) { animation-delay: .3s }
+@keyframes dot { 0%, 100% { opacity: .25; transform: translateY(0) } 50% { opacity: 1; transform: translateY(-4px) } }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7 } }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px }
+.stat b { font-size: 26px; line-height: 1.1 } .stat span { color: var(--muted); font-size: 13px }
+.stat.good b { color: var(--good) } .stat.bad b { color: var(--bad) }
+.weeks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; align-items: end; height: 150px; padding-top: 6px }
+.wk { display: grid; grid-template-rows: 1fr auto auto; height: 100%; gap: 3px; text-align: center; cursor: default }
+.wk-bar { align-self: end; background: var(--accent-soft); border-radius: 4px 4px 0 0; display: flex; align-items: flex-end; overflow: hidden; min-height: 4px }
+.wk-bar i { display: block; width: 100%; background: var(--accent); border-radius: 4px 4px 0 0 }
+.wk:hover .wk-bar { outline: 2px solid var(--accent-soft); outline-offset: 2px }
+.wk-l { font-size: 11px; color: var(--muted) } .wk-v { font-size: 12px; font-weight: 700 }
+.tableview summary { cursor: pointer; color: var(--muted); font-size: 13px }
+.tableview table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px } .tableview td, .tableview th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line) }
+.people { display: grid; gap: 8px } .person { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center } .person > div { display: grid }
+.kinds { display: grid; gap: 8px } .kind { display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: center; font-size: 14px }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px }
+.stones { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 2px solid var(--line); display: grid; gap: 14px }
+.stone { position: relative; display: grid; gap: 3px; font-size: 14px }
+.stone::before { content: ""; position: absolute; left: -23px; top: 3px; width: 12px; height: 12px; border-radius: 99px; background: var(--good); border: 2px solid var(--surface) }
+.stone.missed::before { background: var(--warn) }
+.stone .link { text-align: left }
+.weeks-plan { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px } .weeks-plan li { display: grid; gap: 4px }
