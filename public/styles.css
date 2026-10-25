@@ -418,4 +418,27 @@ nav.tabs::-webkit-scrollbar { display: none }
 .xp-brief .link { text-align: left; font-size: 14px; color: var(--ink); text-decoration: none }
 
 /* The butler's rooms: a way back to the butler */
-.back-butler { text-decoration: none; color: var(--accent-strong); font-weight: 800 }
+
+/* Running costs, in Settings */
+.cost-days { display: grid; gap: 6px; margin: 12px 0 }
+.cost-day { display: grid; grid-template-columns: 64px 1fr 44px; align-items: center; gap: 10px; font-size: 14px; color: var(--muted) }
+.cost-day i { display: block; height: 10px; width: var(--w); background: var(--accent); border-radius: 0 4px 4px 0 }
+.cost-day b { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums }
+
+/* The brief on Home: catch box, money line, shopping, story */
+.catchbox input { border: 1.5px solid var(--accent-soft) }
+.moneyline { display: flex; align-items: baseline; gap: 8px; width: 100%; margin: 0 0 14px; padding: 12px 16px; background: #FFFBEA; border: 1px solid #F3E3A6; border-radius: 14px; font: inherit; color: var(--ink); text-align: left; cursor: pointer }
+.moneyline b.num { font-size: 22px }
+.moneyline > span:first-of-type { flex: 1 }
+.moneyline .muted { font-size: 13px }
+.brief-acts { justify-content: flex-start; margin: 0 0 14px }
+.brief-acts a.btn { text-decoration: none; color: inherit }
+.story { display: grid; gap: 4px; width: 100%; margin: 0 0 18px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font: inherit; color: var(--ink); text-align: left; cursor: pointer }
+.panel.story { cursor: default }
+.good-ink { color: var(--good) } .bad-ink { color: var(--bad) }
+.one-thing.calm { background: var(--surface); border: 1px solid var(--line) }
+.more { margin-top: 6px }
+.shop-coupon { display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; margin: 6px 0; background: #FFFBEA; border: 1px solid #F3E3A6; border-radius: 12px }
+.shop-coupon > b { font-size: 18px }
+.shop-coupon .muted { display: block; font-size: 13px }
+.chance-photo { width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; background: var(--sunken) }

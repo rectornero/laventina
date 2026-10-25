@@ -19,3 +19,12 @@ test("the notification job wakes only in hours someone is due a notice", async (
   assert.equal(await noticesDue(new Date("2026-10-27T11:07:00Z")), false);
   assert.equal(await noticesDue(new Date("2026-10-25T19:07:00Z")), true, "Sunday recap");
 });
+
+test("the day's chores wake the database once a day, whichever job gets there first", async () => {
+  const { setChoresStore, choresIfNeeded } = await import("../lib/daily.mjs");
+  setChoresStore({ get: async (k) => mem.has("c:" + k) ? JSON.parse(mem.get("c:" + k)) : null, setJSON: async (k, v) => mem.set("c:" + k, JSON.stringify(v)) });
+  const day = Date.parse("2026-10-27T07:07:00Z");
+  assert.equal(await choresIfNeeded(day), true, "the morning notifications do them");
+  assert.equal(await choresIfNeeded(day + 4 * 3600e3), false, "the late-morning fallback finds them done");
+  assert.equal(await choresIfNeeded(day + 24 * 3600e3), true, "next day, again");
+});

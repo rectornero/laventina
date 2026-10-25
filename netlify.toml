@@ -2,6 +2,11 @@
   publish = "public"
   command = "echo 'No build step: the app is plain HTML, CSS and ES modules.'"
 
+# Production deploys cost 15 Netlify credits each, so a push to main only builds when its head commit message
+# contains [deploy]. Branch deploys and Deploy Previews (free) always build. Exit 0 = skip, exit 1 = build.
+[context.production]
+  ignore = "git log -1 --format=%B $COMMIT_REF | grep -qF '[deploy]' && exit 1 || exit 0"
+
 [functions]
   node_bundler = "esbuild"
 

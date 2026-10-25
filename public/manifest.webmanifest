@@ -10,5 +10,16 @@
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ]
+  ],
+  "shortcuts": [
+    { "name": "Catch a coupon", "short_name": "Coupon", "url": "/?do=catch", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Add a thing to do", "short_name": "Add", "url": "/?do=add", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "I'm going shopping", "short_name": "Shopping", "url": "/?do=shop", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "share_target": {
+    "action": "/share-in",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "title": "title", "text": "text", "url": "url", "files": [{ "name": "image", "accept": ["image/*"] }] }
+  }
 }

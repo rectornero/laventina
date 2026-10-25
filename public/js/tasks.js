@@ -229,13 +229,19 @@ function fairnessHTML() {
 }
 VIEWS.today = {
   shell: () => `<div id="view-today"><div class="hello"><span class="eyebrow">${esc(new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }))}</span><h2>${greeting()}${S.me ? ", " + esc(S.me.name.split(" ")[0]) : ""}</h2><div id="today-brief"></div></div>
-    <div id="today-top"></div><div id="today-one"></div><div id="today-noticed"></div><div id="today-chances"></div><div id="today-areas"></div><div id="today-coach"></div>${quickAddHTML()}<div id="today-who"></div><div id="today-list"></div><div id="today-fridge"></div></div>`,
+    <div id="today-top"></div>${catchBoxHTML()}<div id="today-one"></div><div id="today-money"></div>
+    <div class="actions brief-acts"><button class="btn" data-act="shop-open">I'm going shopping</button>${askClaudeHTML()}</div>
+    <div id="today-story"></div>
+    <details class="section donebox more" id="today-more"><summary><h2>The rest of today</h2><span class="eyebrow">lists, areas, notes</span></summary>
+    <div id="today-noticed"></div><div id="today-chances"></div><div id="today-areas"></div><div id="today-coach"></div><div id="today-who"></div><div id="today-list"></div><div id="today-fridge"></div></details></div>`,
+  // Home is a brief: the catch box, the one thing, one line of money, and the rest folded away.
   live() {
     const el = $("#today-list"); if (!el) return;
     $("#today-who").innerHTML = "";
     $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML();
     $("#today-brief").innerHTML = briefHTML();
-    $("#today-one").innerHTML = oneThingHTML();
+    $("#today-one").innerHTML = oneThingHTML() || `<section class="one-thing calm"><span class="eyebrow">Today</span><h3>Nothing needs you right now</h3><p class="muted">Catch a coupon or a task in the box above when one comes up.</p></section>`;
+    briefHomeLive();
     $("#today-noticed").innerHTML = insightsHTML();
     $("#today-areas").innerHTML = areasHTML();
     $("#today-chances").innerHTML = chancesHTML();

@@ -29,3 +29,22 @@ self.addEventListener("notificationclick", e => {
     await self.clients.openWindow(url);
   })());
 });
+
+// Shared from another app (the Share menu, see "share_target" in the manifest): keep it for the page and open Laventina.
+// Only this one POST is handled here; every other request goes to the network as usual.
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== "POST" || url.origin !== self.location.origin || url.pathname !== "/share-in") return;
+  e.respondWith((async () => {
+    try {
+      const form = await e.request.formData();
+      const cache = await caches.open("laventina-share");
+      const meta = { title: form.get("title") || "", text: form.get("text") || "", url: form.get("url") || "" };
+      await cache.put("/share/meta", new Response(JSON.stringify(meta), { headers: { "content-type": "application/json" } }));
+      const img = form.get("image");
+      if (img && typeof img !== "string" && img.size) await cache.put("/share/image", new Response(img, { headers: { "content-type": img.type || "image/jpeg" } }));
+      else await cache.delete("/share/image");
+    } catch {}
+    return Response.redirect("/?share=1", 303);
+  })());
+});

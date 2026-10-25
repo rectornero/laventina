@@ -157,7 +157,7 @@ test("push: assigned tasks ring the assignee, mornings bring a digest, dead devi
   const day = (n) => addDays(new Date().toISOString().slice(0, 10), n);
   sent.length = 0;
   await sendDigests(new Date(day(2) + "T07:30:00Z"));
-  assert.equal(sent.length, 1); assert.match(sent[0].title, /Laventina would like a word/); assert.match(sent[0].body, /needs? you today/); assert.match(sent[0].body, /waiting/);
+  assert.equal(sent.length, 1); assert.match(sent[0].title, /things? for today/); assert.match(sent[0].body, /Take the bins out!/); assert.match(sent[0].body, /overdue/);
   assert.ok(!/Secret/.test(sent[0].body));
   await sendDigests(new Date(day(2) + "T08:30:00Z"));
   assert.equal(sent.length, 1, "one digest per day");
@@ -166,7 +166,7 @@ test("push: assigned tasks ring the assignee, mornings bring a digest, dead devi
   gone.add(sub.endpoint);
   await sendDigests(new Date(day(3) + "T07:30:00Z"));
   assert.equal((await sam("POST", "/push/device", { endpoint: sub.endpoint })).body.subscribed, false, "a 410 removes the device");
-  assert.match(digestMessage([{ title: "A", dueOn: "2026-10-20" }], "2026-10-20").body, /^One thing needs you today\. I'll explain inside\.$/);
+  assert.equal(digestMessage([{ title: "A", dueOn: "2026-10-20" }], "2026-10-20").title, "1 thing for today");
   delete process.env.VAPID_PUBLIC_KEY; delete process.env.VAPID_PRIVATE_KEY;
 });
 
