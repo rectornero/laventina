@@ -14,7 +14,9 @@ const blobs = new Map();
 setFileStore({
   set: async (k, v, o) => blobs.set(k, { data: v, metadata: o.metadata }),
   getWithMetadata: async (k) => blobs.get(k) || null,
-  delete: async (k) => blobs.delete(k)
+  delete: async (k) => blobs.delete(k),
+  list: async ({ prefix }) => ({ blobs: [...blobs.keys()].filter(k => k.startsWith(prefix)).map(key => ({ key })) }),
+  getMetadata: async (k) => blobs.has(k) ? { metadata: blobs.get(k).metadata } : null
 });
 
 const root = new URL("../public/", import.meta.url).pathname;

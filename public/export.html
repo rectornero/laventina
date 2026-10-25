@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download everything · Laventina</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .export { max-width: 560px; margin: 48px auto; padding: 0 16px; display: grid; gap: 16px; }
+  .export form { display: grid; gap: 10px; }
+  .export input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid #d9d2ee; }
+  .export #log { white-space: pre-wrap; font-size: 14px; }
+</style>
+<script src="/js/export.js" defer></script>
+</head>
+<body>
+<main class="export">
+  <h1>Download everything</h1>
+  <p>One zip file with all your tasks, lists, inventory, notes, money and papers, your butler conversation, and every photo and scan. Keep it somewhere safe.</p>
+  <form id="signin" hidden>
+    <p class="muted">Sign in first, with your Laventina email and password.</p>
+    <input name="email" type="email" placeholder="Email" autocomplete="email" required>
+    <input name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn primary" type="submit">Sign in</button>
+  </form>
+  <button id="go" class="btn primary" type="button" hidden>Download the zip</button>
+  <div id="log" class="muted"></div>
+</main>
+</body>
+</html>

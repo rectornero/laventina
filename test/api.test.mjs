@@ -12,7 +12,9 @@ const blobs = new Map();
 setFileStore({
   set: async (k, v, o) => blobs.set(k, { data: v, metadata: o.metadata }),
   getWithMetadata: async (k) => blobs.get(k) || null,
-  delete: async (k) => blobs.delete(k)
+  delete: async (k) => blobs.delete(k),
+  list: async ({ prefix }) => ({ blobs: [...blobs.keys()].filter(k => k.startsWith(prefix)).map(key => ({ key })) }),
+  getMetadata: async (k) => blobs.has(k) ? { metadata: blobs.get(k).metadata } : null
 });
 
 function client() {
@@ -229,3 +231,17 @@ test("without keys in the environment, the app makes its own notification keys o
   assert.equal(rows.rows[0].n, 1);
 });
 
+
+test("download everything: shared things, my private ones, and my files, but nobody else's private things", async () => {
+  await nero("PUT", "/records/notes/n_mine", { data: { text: "Nero's secret" }, visibility: "private" });
+  await sam("PUT", "/records/notes/n_sams", { data: { text: "Sam's secret" }, visibility: "private" });
+  const up = await nero("POST", "/files", new Uint8Array([1, 2, 3]), { "content-type": "image/png" });
+  const r = await nero("GET", "/export");
+  assert.equal(r.status, 200);
+  const ids = r.body.records.map(x => x.id);
+  assert.ok(ids.includes("n_mine")); assert.ok(!ids.includes("n_sams"));
+  assert.ok(r.body.members.length >= 2);
+  assert.ok(Array.isArray(r.body.tasks));
+  assert.ok(r.body.files.some(f => f.id === up.body.id && f.type === "image/png"));
+  assert.equal((await eve("GET", "/export")).body.files.length, 0, "another household sees none of it");
+});

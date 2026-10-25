@@ -3,6 +3,7 @@ import { requireUser, createSession, endSession, signup, login, inviteCode } fro
 import { sync, putRecord, deleteRecord, putTask, deleteTask } from "../../lib/data.mjs";
 import { generate, generateIfStale } from "../../lib/generate.mjs";
 import { saveFile, readFile, deleteFile } from "../../lib/files.mjs";
+import { exportAll } from "../../lib/export.mjs";
 import { askClaude, aiEnabled } from "../../lib/ai.mjs";
 import { brief, history, talk, act, greet } from "../../lib/butler.mjs";
 import { makeCtx } from "../../lib/tools.mjs";
@@ -90,6 +91,7 @@ export async function route(req) {
     }
     if (method === "DELETE") { return json(await deleteTask(hid, user.id, decodeURIComponent(m[1]))); }
   }
+  if (path === "/export" && method === "GET") return json(await exportAll(hid, user.id));
   if (path === "/files" && method === "POST") return json(await saveFile(hid, user.id, req));
   if ((m = path.match(/^\/files\/([^/]+)$/))) {
     if (method === "GET") return readFile(hid, m[1]);
