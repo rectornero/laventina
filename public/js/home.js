@@ -155,7 +155,9 @@ const CAUSES = [
   ["date", "Didn't see the end date", "Set the end date when you catch it: Laventina then puts it in your day two days before.", { title: "Add end dates to coupons and offers", repeat: null }],
   ["spend", "Couldn't reach the minimum spend", "Plan one bigger shop around the coupon instead of several small ones.", { title: "Plan one bigger grocery shop this week", repeat: { every: 1, unit: "week" } }],
   ["away", "Wasn't near the shop", "Pin it to a trip you already make, or pass it to someone who goes there.", { title: "Match coupons to shops we already pass", repeat: null }],
-  ["notworth", "Wasn't worth it", "That's fine: only catch the ones worth your time.", null]
+  ["notworth", "Wasn't worth it", "That's fine: only catch the ones worth your time.", null],
+  ["unwatched", "Wasn't watching the costs", "Things that run on their own need a quick look now and then: a weekly glance catches a runaway early.", { title: "Glance at Netlify usage: credits left, anything unusual", repeat: { every: 1, unit: "week" } }],
+  ["external", "Beyond my control", "No guilt: it still counts in the ledger, so the system can guard against it.", null]
 ];
 function openMissed(id) {
   const c = S.chances.get(id); if (!c) return;
