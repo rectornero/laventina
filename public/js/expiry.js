@@ -60,6 +60,11 @@ function insights(all) {
   return out;
 }
 
+// For the Home "noticed" feed (insights.js). Coupons are left out: Home shows them under Money on the table.
+function expiringSoon(days = 30) {
+  return expiryEntries().filter(e => e.lane !== "coupons" && (XP().needsYou(e) || e.days <= days))
+    .map(e => ({ id: e.key, title: briefLine(e).replace(/\.$/, ""), date: e.date, kind: e.lane, view: "expiring" }));
+}
 function expiryCount() { return expiryEntries().filter(e => XP().needsYou(e) && (e.visibility !== "private" || e.createdBy === S.me?.id)).length; }
 // Butler-style lines: one short sentence per thing that needs someone, most urgent first. Other views can show these too.
 function briefLine(e) {
