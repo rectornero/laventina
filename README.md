@@ -15,7 +15,6 @@ A light task manager for a home shared by two (or more) people. One task list si
 - `netlify/functions/api.mjs`: the API at `/api/*` (sign-in, sync, tasks, records, files, Claude).
 - `netlify/functions/daily.mjs`: a scheduled function that creates house tasks every morning.
 - `netlify/functions/push-digest.mjs`: runs hourly and sends each device its morning "due today" notification at the hour it chose. `public/sw.js` shows notifications; assigning a task to someone pings their devices. On Sunday evenings it also sends a recap of the week.
-- `netlify/functions/reminders.mjs`: runs every minute and sends the "remind me 5 / 10 / 30 minutes earlier" pings people set on timed tasks.
 - Together features (`public/js/together.js`): the house bell (rings every other member's devices with an optional message), fridge notes on Today, and thank-yous on tasks someone else finished.
 - Data lives in **Netlify Database** (managed Postgres, powered by Neon) through `@netlify/database`. The schema is the migrations in `netlify/database/migrations/`, which every deploy applies (`lib/schema.mjs` holds the same SQL for tests).
 - `netlify/functions/deploy-succeeded.mjs`: after each production deploy, posts a release update to the Artache feed (needs `ARTACHE_TOKEN`; `[skip artache]` in the commit message skips one).

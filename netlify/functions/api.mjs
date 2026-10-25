@@ -7,7 +7,7 @@ import { askClaude, aiEnabled } from "../../lib/ai.mjs";
 import { brief, history, talk, act, greet } from "../../lib/butler.mjs";
 import { makeCtx } from "../../lib/tools.mjs";
 import { newToken, tokenInfo, revokeTokens } from "../../lib/mcp.mjs";
-import { replanReminders, replanNotices } from "../../lib/wake.mjs";
+import { replanNotices } from "../../lib/wake.mjs";
 import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
@@ -86,10 +86,9 @@ export async function route(req) {
       if (b.data.assigneeId && b.data.assigneeId !== (before && before.assignee_id)) {
         try { await notifyAssigned(hid, user, { ...b.data, id }); } catch (e) { console.error("notify", e); }
       }
-      await replanReminders();
       return json(out);
     }
-    if (method === "DELETE") { const out = await deleteTask(hid, user.id, decodeURIComponent(m[1])); await replanReminders(); return json(out); }
+    if (method === "DELETE") { return json(await deleteTask(hid, user.id, decodeURIComponent(m[1]))); }
   }
   if (path === "/files" && method === "POST") return json(await saveFile(hid, user.id, req));
   if ((m = path.match(/^\/files\/([^/]+)$/))) {
