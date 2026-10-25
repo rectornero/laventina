@@ -65,7 +65,6 @@ function taskRowHTML(t, opts = {}) {
     subs.length ? `<span>${subs.filter(s => s.done).length}/${subs.length}</span>` : "",
     t.repeat && t.repeat.every ? `<span title="${esc(repeatLabel(t.repeat))}">↻ ${esc(repeatLabel(t.repeat).replace("Every ", ""))}</span>` : "",
     t.estMinutes ? `<span>${t.estMinutes} min</span>` : "",
-    !done && t.dueTime && myReminders(t).length ? `<span class="remind-chip" title="I'll remind you before it's due">🔔 ${myReminders(t).join(", ")} min</span>` : "",
     t.visibility === "private" ? `<span class="lock">Private</span>` : "",
     blk ? `<span>Waiting on: ${esc(blk.title)}</span>` : "",
     done && t.doneBy && S.members.length > 1 ? `<span>Done by ${esc(memberName(t.doneBy))}</span>` : ""
@@ -200,7 +199,7 @@ function finishTask(t, { quiet, doneBy } = {}) {
   let next = null;
   if (t.repeat && t.repeat.every && !isGenerated(t)) {
     next = newTask({ title: t.title, notes: t.notes, listId: t.listId, assigneeId: t.assigneeId, priority: t.priority, repeat: t.repeat, tags: t.tags, visibility: t.visibility, estMinutes: t.estMinutes, dueTime: t.dueTime, itemId: t.itemId, roomId: t.roomId,
-      subtasks: (t.subtasks || []).map(s => ({ ...s, done: false })), dueOn: nextRepeatDate(t), extra: t.extra && t.extra.reminders ? { reminders: t.extra.reminders } : undefined });
+      subtasks: (t.subtasks || []).map(s => ({ ...s, done: false })), dueOn: nextRepeatDate(t) });
     putTask(next);
   }
   if (t.projectId) afterProjectStep(t.projectId);
@@ -331,15 +330,6 @@ function sourceNote(t) {
   const r = m && m();
   return r ? `<div class="ai-note src-note"><span>${esc(r[0])}</span><button type="button" class="btn small" data-act="${r[1]}" data-id="${esc(r[3] || t.sourceRef)}">${esc(r[2])}</button></div>` : "";
 }
-// "Remind me N minutes earlier": per person, so each of us picks our own.
-const REMIND_MINS = [5, 10, 30];
-const myReminders = t => ((t.extra && t.extra.reminders && t.extra.reminders[S.me?.id]) || {}).mins || [];
-function remindRowHTML(d) {
-  if (d.status && d.status !== "open") return "";
-  const mine = myReminders(d);
-  return `<div class="remind-row"><span class="eyebrow">Remind me</span><div class="chips" id="ts-remind" role="group" aria-label="Remind me before it's due">${REMIND_MINS.map(m => `<button type="button" class="chip" data-act="ts-remind" data-min="${m}" aria-pressed="${mine.includes(m)}">${m} min earlier</button>`).join("")}</div>
-    <span class="muted remind-hint" id="ts-remind-hint">${d.dueTime ? "" : "Pick a time above, so Laventina knows when."}</span></div>`;
-}
 function openTask(t, prefill = {}) {
   const isNew = !t;
   const d = t ? structuredClone(t) : newTask({ listId: S.tab === "lists" && S.lists.has(S.listView) ? S.listView : undefined, ...prefill });
@@ -365,7 +355,6 @@ function openTask(t, prefill = {}) {
         <label class="f">Project<select id="ts-proj"><option value="">None</option>${[...S.projects.values()].filter(p => !["done", "abandoned"].includes(p.status) || p.id === d.projectId).map(p => `<option value="${esc(p.id)}" ${d.projectId === p.id ? "selected" : ""}>${esc(p.title)}</option>`).join("")}</select></label>`}
         <label class="f">Minutes it takes<input type="number" id="ts-min" min="0" value="${esc(d.estMinutes)}" placeholder="optional"></label>
       </div>
-      ${remindRowHTML(d)}
       ${S.ai && !isNew && d.status === "open" ? `<div><button type="button" class="btn small" data-act="coach-task" data-id="${esc(d.id)}">Help me plan this</button></div>` : ""}
       <label class="f">Notes<textarea id="ts-notes" rows="3" placeholder="Details, phone numbers, links">${esc(d.notes)}</textarea></label>
       <fieldset><legend class="eyebrow">Steps</legend><div id="ts-subs" style="display:grid;gap:6px">${(d.subtasks || []).map(subRowHTML).join("")}</div><div><button type="button" class="btn small" data-act="ts-sub-add">Add a step</button></div></fieldset>
@@ -400,14 +389,6 @@ function readTask() {
     if (d.repeat && !d.dueOn) d.dueOn = todayISO();
   }
   if ($("#ts-private")) d.visibility = $("#ts-private").checked ? "private" : "shared";
-  if ($("#ts-remind")) {
-    const mins = [...document.querySelectorAll('#ts-remind [aria-pressed="true"]')].map(b => Number(b.dataset.min));
-    const rem = { ...((d.extra && d.extra.reminders) || {}) };
-    if (mins.length) rem[S.me.id] = { mins, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" }; else delete rem[S.me.id];
-    const extra = { ...(d.extra || {}), reminders: rem };
-    if (!Object.keys(rem).length) delete extra.reminders;
-    d.extra = Object.keys(extra).length ? extra : undefined;
-  }
   d.subtasks = [...document.querySelectorAll("#ts-subs .subrow")].map(r => ({ id: r.querySelector(".s-id").value, title: r.querySelector(".s-title").value.trim(), done: r.querySelector(".s-done").checked })).filter(s => s.title);
   if (!d.subtasks.length) d.subtasks = undefined;
   return d;
