@@ -251,6 +251,7 @@ function renderEditor(note) {
             <span class="actions" id="w-chips" ${showWarrantyChips ? "" : "hidden"}>${[1, 2, 3, 5].map(y => `<button type="button" class="chip" data-act="w-years" data-y="${y}">${y} yr</button>`).join("")}</span></label>
           <label class="f">Use by / expires<input type="date" id="f-expires" value="${esc(d.expiresOn)}"></label>
           <label class="f">Installed on <span class="hint">appliances, heating, detectors</span><input type="date" id="f-install" value="${esc(d.installDate)}"></label>
+          <label class="f">Lasts (months) <span class="hint">filters, batteries: Laventina says when to replace</span><input type="number" min="0" step="1" id="f-life" value="${esc(d.lifeMonths)}"></label>
         </div>
       </fieldset>
       <details class="more" ${d.lentTo || a.filterSize || a.batteryType || a.bulbType || dm.w || d.manualUrl ? "open" : ""}><summary>Lending, size, and parts</summary>
@@ -287,7 +288,7 @@ function readEditor() {
   Object.assign(d, {
     name: v("f-name"), roomId: v("f-room") === "__new" ? "" : v("f-room"), spot: v("f-spot"), category: v("f-cat"), qty: n("f-qty") ?? 1, unit: v("f-unit"), minQty: n("f-min"),
     value: n("f-value"), purchasePrice: n("f-price"), purchaseDate: v("f-pdate"), store: v("f-store"), brand: v("f-brand"), model: v("f-model"), serial: v("f-serial"),
-    warrantyUntil: v("f-warranty"), expiresOn: v("f-expires"), installDate: v("f-install"), lentTo: v("f-lentto"), lentOn: v("f-lenton"), manualUrl: v("f-manual"), notes: v("f-notes"),
+    warrantyUntil: v("f-warranty"), expiresOn: v("f-expires"), installDate: v("f-install"), lifeMonths: n("f-life"), lentTo: v("f-lentto"), lentOn: v("f-lenton"), manualUrl: v("f-manual"), notes: v("f-notes"),
     attributes: { ...d.attributes, filterSize: v("f-filter"), batteryType: v("f-battery"), bulbType: v("f-bulb") },
     dimensionsCm: { w: n("f-w"), d: n("f-d"), h: n("f-h") }
   });

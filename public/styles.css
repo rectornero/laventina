@@ -405,3 +405,18 @@ nav.tabs::-webkit-scrollbar { display: none }
 .stone.missed::before { background: var(--warn) }
 .stone .link { text-align: left }
 .weeks-plan { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px } .weeks-plan li { display: grid; gap: 4px }
+/* Expiring */
+.xp-add { margin: 0 0 16px; flex-wrap: wrap }
+.xp-wallet { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory }
+.xp-coupon { flex: 0 0 168px; scroll-snap-align: start; display: grid; gap: 4px; text-align: left; padding: 12px 14px; border-radius: var(--r); border: 1px dashed var(--accent); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); color: var(--ink) }
+.xp-coupon.warn { border-color: var(--warn) } .xp-coupon.bad { border-color: var(--bad); border-style: solid }
+.xp-coupon .xp-store { font: 800 12px var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+.xp-coupon .xp-val { font-size: 26px; font-weight: 800; color: var(--accent-strong) }
+.xp-coupon .xp-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.xp-coupon .pill { justify-self: start }
+.xp-notes ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 6px }
+.xp-plan { white-space: pre-wrap; margin-top: 10px }
+.xp-photo { max-width: 100%; max-height: 260px; border-radius: 10px; object-fit: contain; background: var(--sunken) }
+.xp-code { font-size: 22px; font-weight: 800; letter-spacing: .12em; text-align: center; padding: 10px; border: 1px dashed var(--line); border-radius: 10px }
+.xp-brief { list-style: none; margin: 6px 0 10px; padding: 0; display: grid; gap: 6px }
+.xp-brief .link { text-align: left; font-size: 14px; color: var(--ink); text-decoration: none }

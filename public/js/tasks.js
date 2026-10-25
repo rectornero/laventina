@@ -184,6 +184,7 @@ function completeTask(t) {
   if (!t) return;
   if (t.status !== "open") { putTask({ ...t, status: "open", doneAt: undefined, doneBy: undefined }); return; }
   if (t.source === "care") { const p = S.plans.get(t.sourceRef); if (p) return openDone(p, t); }
+  if (typeof expiryComplete === "function" && expiryComplete(t)) return;
   if (t.source === "money") {
     const c = S.charges.get(t.sourceRef);
     if (c && t.sourceType === "pay") return openPaid(c, t);
@@ -233,7 +234,7 @@ VIEWS.today = {
   live() {
     const el = $("#today-list"); if (!el) return;
     $("#today-who").innerHTML = "";
-    $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML();
+    $("#today-top").innerHTML = bellBannerHTML() + pushCardHTML() + (typeof expiryCardHTML === "function" ? expiryCardHTML() : "");
     $("#today-brief").innerHTML = briefHTML();
     $("#today-one").innerHTML = oneThingHTML();
     $("#today-noticed").innerHTML = insightsHTML();
@@ -324,10 +325,11 @@ function sourceNote(t) {
     care: () => { const p = S.plans.get(t.sourceRef); return p ? [`From Upkeep. Ticking it off logs the job in the care history and schedules the next one.`, "up-edit", "Open the care plan"] : null; },
     money: () => { const c = S.charges.get(t.sourceRef); return c ? [t.sourceType === "pay" ? "From your bills. Ticking it off records the payment and moves the bill to its next date." : t.sourceType === "contract" ? "From your contracts. Ticking it off asks whether you renewed, switched or cancelled." : "From your subscriptions. Ticking it off asks whether you still use it.", "charge-edit", "Open the bill"] : null; },
     papers: () => S.docs.get(t.sourceRef) ? ["From your papers. Upload the renewed document and set its new expiry date.", "doc-edit", "Open the document"] : null,
-    inventory: () => S.items.get(t.sourceRef) ? ["From the inventory. Try everything now, while the warranty still covers it.", "edit", "Open the item"] : null
+    inventory: () => { const id = String(t.sourceRef).replace(/^(useby|life):/, ""); return S.items.get(id) ? [t.sourceType === "useby" ? "From Expiring. Ticking it off asks whether you used it, threw it out or bought fresh." : t.sourceType === "lifespan" ? "From Expiring: this has reached the end of its life. Ticking it off restarts the clock." : "From the inventory. Try everything now, while the warranty still covers it.", "edit", "Open the item"].concat([id]) : null; },
+    expiry: () => S.expiries.get(t.sourceRef) ? ["From Expiring. Ticking it off asks whether you used or renewed it.", "xp-open-ref", "Open it"] : null
   }[t.source];
   const r = m && m();
-  return r ? `<div class="ai-note src-note"><span>${esc(r[0])}</span><button type="button" class="btn small" data-act="${r[1]}" data-id="${esc(t.sourceRef)}">${esc(r[2])}</button></div>` : "";
+  return r ? `<div class="ai-note src-note"><span>${esc(r[0])}</span><button type="button" class="btn small" data-act="${r[1]}" data-id="${esc(r[3] || t.sourceRef)}">${esc(r[2])}</button></div>` : "";
 }
 // "Remind me N minutes earlier": per person, so each of us picks our own.
 const REMIND_MINS = [5, 10, 30];

@@ -222,7 +222,7 @@ const EXP_CATS = [...CHARGE_CATS, "maintenance", "improvement", "furnishing", "h
 const FREQ = [["monthly", "Monthly"], ["quarterly", "Quarterly"], ["yearly", "Yearly"], ["weekly", "Weekly"]];
 const FREQ_M = { monthly: 1, quarterly: 3, yearly: 12 };
 const perMonth = c => c.frequency === "weekly" ? (c.amount || 0) * 52 / 12 : (c.amount || 0) / (FREQ_M[c.frequency] || 1);
-const DOC_TYPES = ["receipt", "invoice", "contract", "policy", "warranty", "manual", "certificate", "deed", "tax", "other"];
+const DOC_TYPES = ["passport", "id_card", "licence", "visa", "receipt", "invoice", "contract", "policy", "warranty", "manual", "certificate", "deed", "tax", "other"];
 const SPLITS = [["equal", "Split equally"], ["payer_only", "Only the payer"]];
 const activeCharges = () => [...S.charges.values()].filter(c => c.status !== "cancelled");
 function switchWindow(c) {
