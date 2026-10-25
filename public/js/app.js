@@ -69,7 +69,7 @@ function openSettings() {
         }).join("")}</div>
         <div class="search"><label class="sr" for="s-newroom">New room</label><input type="text" id="s-newroom" placeholder="Add a room: Attic, Kids' room…"><button type="button" class="btn small" data-act="room-add">Add room</button></div>
       </fieldset>
-      <div class="ai-note">${S.ai ? "Claude is on: it reads photos and receipts and answers questions about your house." : "Claude is off. Whoever runs the Netlify site can add an ANTHROPIC_API_KEY environment variable to turn on photo reading and Ask."}</div>
+      <div class="ai-note">${S.ai ? "Claude is on: it reads photos and receipts and answers questions about your house." : "Claude is off inside the app, so no Netlify credits are spent. To talk with Laventina through Claude, use Connect Claude in the butler's menu."}</div>
       <div class="actions" style="justify-content:space-between"><button type="button" class="btn" data-act="signout">Sign out</button><button type="submit" class="btn primary">Save</button></div>
     </form>`);
   renderPush();

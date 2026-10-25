@@ -234,7 +234,7 @@ async function openMenu() {
 async function openClaude() {
   let info = { connected: false };
   try { info = await api("GET", "/connect/claude"); } catch {}
-  sheet(`<h2>Connect Claude</h2><p>Claude can then see what matters in your household and act on it, the same way I do: tasks, coupons, notes, the bell. It never sends anything outside the house.</p>
+  sheet(`<h2>Connect Claude</h2><p>Claude can then see what matters in your household and act on it, the same way I do: tasks, coupons, notes, the bell. It runs on your own Claude plan, and it never sends anything outside the house.</p>
     <div id="cl-box">${info.connected ? `<p>Connected${info.used ? `, last used ${esc(new Date(info.used).toLocaleDateString())}` : ""}. For safety I can't show the link again; make a new one if you need it.</p>` : ""}</div>
     <div class="chips"><button class="btn primary" type="button" data-menu="claude-new">${info.connected ? "Make a new link" : "Make my link"}</button>${info.connected ? `<button class="btn quiet" type="button" data-menu="claude-off">Disconnect</button>` : ""}</div>`);
 }
