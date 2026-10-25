@@ -4,6 +4,9 @@ import { sync, putRecord, deleteRecord, putTask, deleteTask } from "../../lib/da
 import { generate, generateIfStale } from "../../lib/generate.mjs";
 import { saveFile, readFile, deleteFile } from "../../lib/files.mjs";
 import { askClaude, aiEnabled } from "../../lib/ai.mjs";
+import { brief, history, talk, act, greet } from "../../lib/butler.mjs";
+import { makeCtx } from "../../lib/tools.mjs";
+import { newToken, tokenInfo, revokeTokens } from "../../lib/mcp.mjs";
 import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
@@ -95,6 +98,22 @@ export async function route(req) {
   if (path === "/push/subscribe" && method === "POST") return json(await subscribe(hid, user.id, await body(req)));
   if (path === "/push/unsubscribe" && method === "POST") return json(await unsubscribe(user.id, (await body(req)).endpoint));
   if (path === "/push/test" && method === "POST") return json(await sendTest(user.id, (await body(req)).endpoint));
+  // The butler: what matters now, the conversation, and tapped replies. The page sends its time zone.
+  if (path.startsWith("/butler")) {
+    const ctx = await makeCtx(hid, user, req.headers.get("x-tz") || undefined);
+    if (path === "/butler" && method === "GET") {
+      const [b, log] = await Promise.all([brief(ctx), history(ctx, 30)]);
+      return json({ me: user, ai: aiEnabled(), push: await pushInfo(), messages: b.messages, log, people: b.senses.people.length, profile: { presence: b.senses.presence, location: b.senses.location } });
+    }
+    if (path === "/butler/say" && method === "POST") { const b = await body(req); return json(await talk(ctx, { text: b.text, fileIds: Array.isArray(b.fileIds) ? b.fileIds : [] })); }
+    if (path === "/butler/greet" && method === "POST") return json(await greet(ctx));
+    if (path === "/butler/act" && method === "POST") return json(await act(ctx, await body(req)));
+  }
+  if (path === "/connect/claude") {
+    if (method === "GET") return json(await tokenInfo(user.id));
+    if (method === "POST") { const token = await newToken(user.id); return json({ url: url.origin + "/mcp/" + token }); }
+    if (method === "DELETE") return json(await revokeTokens(user.id));
+  }
   if (path === "/ai" && method === "POST") return json(await askClaude(hid, await body(req)));
 
   throw new HttpError(404, "not_found", "No such endpoint.");
