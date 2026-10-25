@@ -329,10 +329,6 @@ body.signed-out header.top nav, body.signed-out .top-row .iconbtn { display: non
 .swatch { width: 18px; height: 18px; border-radius: 99px; border: 1px solid rgba(43,37,65,.15); padding: 0 }
 .thanked { font-size: 13px; color: var(--accent-strong); font-weight: 700; white-space: nowrap }
 .claim.thank { color: var(--accent-strong) }
-.remind-row { display: grid; gap: 6px }
-.remind-row .chips { flex-wrap: wrap }
-.remind-hint { font-size: 13px; min-height: 0 }
-.remind-chip { white-space: nowrap }
 
 /* Home: briefing, one thing, noticed, areas, opportunities; Progress */
 nav.tabs { overflow-x: auto; scrollbar-width: none }

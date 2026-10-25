@@ -229,31 +229,3 @@ test("without keys in the environment, the app makes its own notification keys o
   assert.equal(rows.rows[0].n, 1);
 });
 
-test("remind me 5 / 10 / 30 minutes before: each goes out once, in the person's time zone", async () => {
-  const { setSender, sendReminders, zonedInstant } = await import("../lib/push.mjs");
-  assert.equal(new Date(zonedInstant("2026-10-23", "18:30", "Europe/Madrid")).toISOString(), "2026-10-23T16:30:00.000Z");
-  assert.equal(new Date(zonedInstant("2026-10-26", "18:30", "Europe/Madrid")).toISOString(), "2026-10-26T17:30:00.000Z", "after the clocks go back");
-  const sent = [];
-  setSender(async (sub, payload) => { if (sub.endpoint.endsWith("/sam-r")) sent.push({ to: sub.endpoint, ...JSON.parse(payload) }); });
-  const samId = (await sam("GET", "/me")).body.user.id, neroId = (await nero("GET", "/me")).body.user.id;
-  const day = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-  await sam("POST", "/push/subscribe", { subscription: { endpoint: "https://push.example/sam-r", keys: { p256dh: "BPkey", auth: "authkey" } }, tz: "UTC" });
-  await nero("PUT", "/tasks/t_call", { data: { title: "Call the plumber", dueOn: day, dueTime: "18:30",
-    extra: { reminders: { [samId]: { mins: [10, 30], tz: "Europe/Madrid" }, [neroId]: { mins: [99], tz: "UTC" } } } } });
-  const due = zonedInstant(day, "18:30", "Europe/Madrid");
-  const at = (minBefore) => new Date(due - minBefore * 60000);
-  await sendReminders(at(45));
-  assert.equal(sent.length, 0, "too early");
-  await sendReminders(at(29.5));
-  assert.equal(sent.length, 1); assert.equal(sent[0].title, "In 30 min: Call the plumber"); assert.equal(sent[0].to, "https://push.example/sam-r");
-  await sendReminders(at(28));
-  assert.equal(sent.length, 1, "once each");
-  await sendReminders(at(9));
-  assert.equal(sent.length, 2); assert.match(sent[1].title, /^In 10 min/);
-  await sendReminders(at(-30));
-  assert.equal(sent.length, 2, "nothing after it's due, and odd minute values are ignored");
-  // Done tasks stay quiet.
-  await nero("PUT", "/tasks/t_call2", { data: { title: "Done already", status: "done", dueOn: day, dueTime: "18:30", extra: { reminders: { [samId]: { mins: [5], tz: "Europe/Madrid" } } } } });
-  await sendReminders(at(4));
-  assert.equal(sent.length, 2);
-});
