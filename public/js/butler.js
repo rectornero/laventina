@@ -99,7 +99,7 @@ async function tapChip(btn) {
   const settle = (note) => { if (row) row.outerHTML = note ? `<div class="answered">${esc(note)}</div>` : ""; if (c.msg) remember(c.msg); };
   if (c.dismiss) { settle(""); card.closest(".msg").style.opacity = ".55"; return; }
   if (c.prefill) { const f = $("#say"); f.value = c.prefill; f.focus(); f.setSelectionRange(f.value.length, f.value.length); grow(); return; }
-  if (c.open) { location.href = c.open; return; }
+  if (c.open) { if (c.open === "#costs") return openCosts(); location.href = c.open; return; }
   if (c.ask === "cause") {
     settle("");
     addUser(c.label, { tap: true });
@@ -228,6 +228,7 @@ async function openMenu() {
   sheet(`<h2>At your service</h2>
     <a class="row" href="/rooms.html"><span class="ic">🚪</span><span><b>The butler's rooms</b><span>Everything behind the scenes: tasks, house, money and papers.</span></span></a>
     <button class="row" type="button" data-menu="claude"><span class="ic">✳︎</span><span><b>Connect Claude</b><span>Let Claude work with your household, from any Claude app.</span></span></button>
+    <button class="row" type="button" data-menu="costs"><span class="ic">🪙</span><span><b>Running costs</b><span>What I cost to run on Netlify, in credits.</span></span></button>
     <button class="row" type="button" data-menu="bell"><span class="ic">🔔</span><span><b>The discreet bell</b><span>${esc(bell.text)}</span></span></button>
     <button class="row" type="button" data-menu="signout"><span class="ic">👋</span><span><b>Sign out</b><span>${esc(B.me ? B.me.email : "")}</span></span></button>`);
 }
@@ -237,6 +238,22 @@ async function openClaude() {
   sheet(`<h2>Connect Claude</h2><p>Claude can then see what matters in your household and act on it, the same way I do: tasks, coupons, notes, the bell. It runs on your own Claude plan, and it never sends anything outside the house.</p>
     <div id="cl-box">${info.connected ? `<p>Connected${info.used ? `, last used ${esc(new Date(info.used).toLocaleDateString())}` : ""}. For safety I can't show the link again; make a new one if you need it.</p>` : ""}</div>
     <div class="chips"><button class="btn primary" type="button" data-menu="claude-new">${info.connected ? "Make a new link" : "Make my link"}</button>${info.connected ? `<button class="btn quiet" type="button" data-menu="claude-off">Disconnect</button>` : ""}</div>`);
+}
+// What Laventina costs to run, by its own meter (lib/meter.mjs). Netlify's Usage page has the real balance.
+async function openCosts() {
+  sheet(`<h2>Running costs</h2><p>Counting…</p>`);
+  let r;
+  try { r = await api("GET", "/costs"); } catch (e) { sheet(`<h2>Running costs</h2><p>${esc(e.message)}</p>`); return; }
+  const fmt = d => new Date(d + "T12:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const n = x => Number(x).toLocaleString(undefined, { maximumFractionDigits: x >= 100 ? 0 : 1 });
+  const days = r.days.filter(d => d.measured);
+  const top = Math.max(1, ...days.map(d => d.total));
+  const rows = days.slice().reverse().map(d => `<div class="cost-day"><span>${esc(fmt(d.date))}</span><i style="--w:${Math.max(2, Math.round(100 * d.total / top))}%" title="Compute ${d.compute}, database ${d.database}, deploys ${d.deploys}"></i><b>${n(d.total)}</b></div>`).join("");
+  sheet(`<h2>Running costs</h2>
+    <p class="cost-head"><b>${n(r.spent)}</b> credits so far, from ${esc(fmt(r.cycle.start))} to ${esc(fmt(r.cycle.end))}.</p>
+    <p>At this pace, about <b>${n(r.projected)}</b> by the end of the cycle: ${r.share}% of your ${n(r.budget)}. A usual day costs about ${n(r.perDay)}.</p>
+    ${rows ? `<div class="cost-days" aria-label="Credits per day">${rows}</div>` : `<p>I started counting today, so there is nothing to show yet.</p>`}
+    <p>${esc(r.note)} <a href="https://app.netlify.com/teams/overgame-director" target="_blank" rel="noopener">Open Netlify</a> (Usage &amp; billing)</p>`);
 }
 async function claudeNew() {
   try {
@@ -281,7 +298,7 @@ document.addEventListener("click", e => {
   const m = e.target.closest("[data-menu]"); if (!m) return;
   ({ claude: openClaude, "claude-new": claudeNew, "claude-off": () => api("DELETE", "/connect/claude").then(openClaude),
      "claude-copy": () => navigator.clipboard.writeText($("#cl-url").value).then(() => toast("Copied"), () => $("#cl-url").select()),
-     bell: toggleBell, signout: signOut })[m.dataset.menu]?.();
+     costs: openCosts, bell: toggleBell, signout: signOut })[m.dataset.menu]?.();
 });
 document.addEventListener("submit", e => {
   if (e.target.id === "signin") return signIn(e);

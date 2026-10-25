@@ -8,6 +8,7 @@ import { brief, history, talk, act, greet } from "../../lib/butler.mjs";
 import { makeCtx } from "../../lib/tools.mjs";
 import { newToken, tokenInfo, revokeTokens } from "../../lib/mcp.mjs";
 import { replanReminders, replanNotices } from "../../lib/wake.mjs";
+import { metered, costReport } from "../../lib/meter.mjs";
 import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
@@ -111,6 +112,7 @@ export async function route(req) {
     if (path === "/butler/greet" && method === "POST") return json(await greet(ctx));
     if (path === "/butler/act" && method === "POST") return json(await act(ctx, await body(req)));
   }
+  if (path === "/costs" && method === "GET") return json(await costReport());
   if (path === "/connect/claude") {
     if (method === "GET") return json(await tokenInfo(user.id));
     if (method === "POST") { const token = await newToken(user.id); return json({ url: url.origin + "/mcp/" + token }); }
@@ -121,13 +123,13 @@ export async function route(req) {
   throw new HttpError(404, "not_found", "No such endpoint.");
 }
 
-export default async (req) => {
+export default metered("api", async (req) => {
   try { return await route(req); }
   catch (e) {
     if (e instanceof HttpError) return json({ error: e.code, message: e.message }, e.status);
     console.error(e);
     return json({ error: "server_error", message: "Something went wrong on the server. Try again." }, 500);
   }
-};
+}, { request: true });
 
 export const config = { path: "/api/*" };
