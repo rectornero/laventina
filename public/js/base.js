@@ -38,8 +38,8 @@ const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
 // ---------- State ----------
 const S = {
   items: new Map(), rooms: new Map(), shopping: new Map(), lists: new Map(), plans: new Map(), ulog: new Map(), charges: new Map(), expenses: new Map(), settlements: new Map(),
-  docs: new Map(), projects: new Map(), finishes: new Map(), wish: new Map(), decisions: new Map(), notes: new Map(), bells: new Map(), coach: new Map(), chances: new Map(), tasks: new Map(),
-  house: { name: "Our home", currency: "EUR", sharedSpendThreshold: 150 }, upkeep: { hemisphere: "north", flags: {} },
+  docs: new Map(), projects: new Map(), finishes: new Map(), wish: new Map(), decisions: new Map(), notes: new Map(), bells: new Map(), coach: new Map(), chances: new Map(), expiries: new Map(), tasks: new Map(),
+  house: { name: "Our home", currency: "EUR", sharedSpendThreshold: 150 }, upkeep: { hemisphere: "north", flags: {} }, expiry: {},
   me: null, members: [], household: null, ai: false, push: null, pushState: "off",
   mode: "loading", tab: "today", lastHouseTab: "overview", q: "", room: "all", flag: "all", sweepRoom: null, swept: new Set(), askText: "", askBusy: false,
   who: "mine", listView: "inbox"
@@ -98,9 +98,9 @@ function clean(o) {
   return r;
 }
 // App key -> record kind on the server
-const COLLS = { items: "items", rooms: "rooms", shopping: "shopping", lists: "lists", plans: "plans", ulog: "upkeepLog", charges: "charges", expenses: "expenses", settlements: "settlements", docs: "documents", projects: "projects", finishes: "finishes", wish: "wishlist", decisions: "decisions", notes: "notes", bells: "bells", coach: "coach", chances: "chances" };
+const COLLS = { items: "items", rooms: "rooms", shopping: "shopping", lists: "lists", plans: "plans", ulog: "upkeepLog", charges: "charges", expenses: "expenses", settlements: "settlements", docs: "documents", projects: "projects", finishes: "finishes", wish: "wishlist", decisions: "decisions", notes: "notes", bells: "bells", coach: "coach", chances: "chances", expiries: "expiries" };
 const KIND_KEY = Object.fromEntries(Object.entries(COLLS).map(([k, v]) => [v, k]));
-const GEN_KINDS = new Set(["plans", "charges", "docs", "items"]);
+const GEN_KINDS = new Set(["plans", "charges", "docs", "items", "expiries"]);
 let genTimer;
 function regenSoon() { clearTimeout(genTimer); genTimer = setTimeout(() => api("POST", "/generate").then(pull).catch(() => {}), 2500); }
 function put(key, obj) {
@@ -148,7 +148,7 @@ let lastSync = null, pulling = false, lastMe = Date.now();
 function applySync(res) {
   for (const r of res.records) {
     if (pending.has(r.kind + "/" + r.id)) continue;
-    if (r.kind === "meta") { if (!r.deleted && (r.id === "house" || r.id === "upkeep")) S[r.id] = { ...S[r.id], ...r.data }; continue; }
+    if (r.kind === "meta") { if (!r.deleted && (r.id === "house" || r.id === "upkeep" || r.id === "expiry")) S[r.id] = { ...S[r.id], ...r.data }; continue; }
     const key = KIND_KEY[r.kind]; if (!key) continue;
     if (r.deleted) S[key].delete(r.id); else S[key].set(r.id, { ...r.data, id: r.id });
   }
@@ -201,7 +201,7 @@ function missingProof(it) {
 function proofScore(it) { const need = SERIAL_GROUPS.has(catGroup(it.category)) ? 4 : 3; return (need - missingProof(it).length) / need; }
 
 // ---------- Rendering ----------
-const MAIN_TABS = [["today", "Home"], ["upcoming", "Upcoming"], ["lists", "Lists"], ["house", "House"], ["progress", "Progress"]];
+const MAIN_TABS = [["today", "Home"], ["upcoming", "Upcoming"], ["expiring", "Expiring"], ["lists", "Lists"], ["house", "House"], ["progress", "Progress"]];
 const HOUSE_TABS = [["overview", "Overview"], ["inventory", "Inventory"], ["upkeep", "Upkeep"], ["projects", "Projects"], ["money", "Money & papers"], ["shopping", "Stock & shopping"], ["sweep", "Room sweep"], ["ask", "Ask"]];
 const isHouseTab = t => HOUSE_TABS.some(([k]) => k === t);
 let raf = 0;
@@ -210,8 +210,9 @@ function renderNav() {
   const att = activeItems().filter(i => flagsFor(i).some(f => f.rank != null && f.rank <= 2)).length;
   const low = activeItems().filter(i => flagsFor(i).some(f => f.k === "low")).length + [...S.shopping.values()].filter(s => !s.done).length;
   const today = typeof todayTasks === "function" ? todayTasks().filter(t => mineOrAnyone(t)).length : 0;
+  const xp = typeof expiryCount === "function" ? expiryCount() : 0;
   const main = isHouseTab(S.tab) ? "house" : S.tab;
-  $("#tabs").innerHTML = MAIN_TABS.map(([k, l]) => `<button data-act="tab" data-tab="${k === "house" ? S.lastHouseTab : k}" ${main === k ? 'aria-current="page"' : ""}>${l}${k === "today" && today ? `<span class="count">${today}</span>` : ""}</button>`).join("");
+  $("#tabs").innerHTML = MAIN_TABS.map(([k, l]) => `<button data-act="tab" data-tab="${k === "house" ? S.lastHouseTab : k}" ${main === k ? 'aria-current="page"' : ""}>${l}${k === "today" && today ? `<span class="count">${today}</span>` : ""}${k === "expiring" && xp ? `<span class="count">${xp}</span>` : ""}</button>`).join("");
   const sub = $("#subtabs");
   sub.hidden = main !== "house";
   if (main === "house") sub.innerHTML = HOUSE_TABS.map(([k, l]) => `<button class="chip" data-act="tab" data-tab="${k}" aria-pressed="${S.tab === k}">${l}${k === "overview" && att ? ` <span class="muted">${att}</span>` : ""}${k === "shopping" && low ? ` <span class="muted">${low}</span>` : ""}</button>`).join("");

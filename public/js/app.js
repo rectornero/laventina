@@ -105,11 +105,12 @@ async function renderPush() {
     <label class="check"><input type="checkbox" id="p-assigned" ${dev.assigned ? "checked" : ""}> When someone gives me a task or says thanks</label>
     <label class="check"><input type="checkbox" id="p-bell" ${dev.bell !== false ? "checked" : ""}> The house bell</label>
     <label class="check"><input type="checkbox" id="p-weekly" ${dev.weekly !== false ? "checked" : ""}> Sunday evening recap of our week</label>
+    <label class="check"><input type="checkbox" id="p-expiry" ${dev.expiry !== false ? "checked" : ""}> Monday heads-up on what is running out</label>
     <div class="actions" style="justify-content:flex-start"><button type="button" class="btn small" data-act="push-test">Send a test</button><button type="button" class="btn small" data-act="push-off">Turn off on this device</button></div>`);
 }
 function pushPrefs() {
   const on = id => $("#" + id) ? $("#" + id).checked : true;
-  return { daily: on("p-daily"), assigned: on("p-assigned"), bell: on("p-bell"), weekly: on("p-weekly"),
+  return { daily: on("p-daily"), assigned: on("p-assigned"), bell: on("p-bell"), weekly: on("p-weekly"), expiry: on("p-expiry"),
     hour: $("#p-hour") ? Number($("#p-hour").value) : 8, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" };
 }
 async function pushOn() {
@@ -186,7 +187,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   if (e.target.id === "ts-rep") $("#ts-rep-custom").hidden = e.target.value !== "custom";
-  if (["p-daily", "p-hour", "p-assigned", "p-bell", "p-weekly"].includes(e.target.id)) pushSave();
+  if (["p-daily", "p-hour", "p-assigned", "p-bell", "p-weekly", "p-expiry"].includes(e.target.id)) pushSave();
 });
 document.addEventListener("keydown", e => {
   if (e.key === "n" && !e.metaKey && !e.ctrlKey && !e.altKey && S.mode === "live" && !$("#layer").innerHTML && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) { const q = $("#qt-text"); if (q) { e.preventDefault(); q.focus(); } }

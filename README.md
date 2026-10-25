@@ -7,6 +7,7 @@ A light task manager for a home shared by two (or more) people. One task list si
 - **Upkeep**: care plans suggested from the inventory. When a job comes due it appears as a task; ticking it logs the job and schedules the next one.
 - **Projects**: steps are tasks (optionally in order), with budgets, a finishes ledger and a shared wishlist with votes.
 - **Money & papers**: bills, contracts and documents turn into tasks (pay, renew or switch, still using it?, renew a document). Shared payments add up to a settle-up balance.
+- **Expiring**: one inbox for everything that runs out: coupons (from Money on the table; snap a photo and Claude fills in the shop, value, minimum spend and last day), papers, contract notice dates, warranties, use-by dates, and things with a lifespan (filters, batteries, smoke alarms). Each one turns into a task in time, Today shows short "before they run out" lines, and a Monday push lists what needs someone. The rules live in `public/js/expiry-core.js`, shared by the page and the server.
 
 ## How it runs
 
