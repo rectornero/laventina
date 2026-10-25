@@ -6,6 +6,7 @@ import { extname, join, normalize } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { setDb } from "../lib/db.mjs";
 import { setFileStore } from "../lib/files.mjs";
+import { setPulseStore } from "../lib/pulse.mjs";
 import handler from "../netlify/functions/api.mjs";
 
 const pg = new PGlite(process.env.PGLITE_DIR);
@@ -16,6 +17,8 @@ setFileStore({
   getWithMetadata: async (k) => blobs.get(k) || null,
   delete: async (k) => blobs.delete(k)
 });
+const notes = new Map();
+setPulseStore({ get: async (k) => notes.has(k) ? JSON.parse(notes.get(k)) : null, setJSON: async (k, v) => notes.set(k, JSON.stringify(v)) });
 
 const root = new URL("../public/", import.meta.url).pathname;
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json" };

@@ -42,7 +42,7 @@ async function submitAuth() {
 
 // ---------- Settings ----------
 function applyMe(me) {
-  S.me = me.user; S.members = me.members; S.household = me.household; S.ai = !!me.ai; S.push = me.push || null;
+  S.me = me.user; S.members = me.members; S.household = me.household; S.ai = !!me.ai; S.push = me.push || null; S.pulse = me.pulse || null;
   sampleCap = S.ai ? makeClaude() : null;
 }
 function inviteLink() { return location.origin + "/?invite=" + encodeURIComponent(S.household?.inviteCode || ""); }

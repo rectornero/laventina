@@ -21,7 +21,8 @@ test("the reminder job leaves the database asleep unless a reminder is due", asy
   assert.equal(at.length, 1);
   const fire = Date.parse(today + "T23:20:00Z");
   assert.equal(at[0], fire);
-  assert.equal(await remindersDue(fire - 60000), false, "a minute early: stay asleep");
+  assert.equal(await remindersDue(fire - 6 * 60000), false, "more than one 5-minute run early: stay asleep");
+  assert.equal(await remindersDue(fire - 4 * 60000), true, "the run just before: send it now rather than late");
   assert.equal(await remindersDue(fire + 60000), true, "due: wake up");
   assert.equal(await remindersDue(fire + 20 * 60000), false, "long past: stay asleep");
 });
@@ -33,4 +34,13 @@ test("the notification job wakes only in hours someone is due a notice", async (
   assert.equal(await noticesDue(new Date("2026-10-27T08:07:00Z")), true);
   assert.equal(await noticesDue(new Date("2026-10-27T11:07:00Z")), false);
   assert.equal(await noticesDue(new Date("2026-10-25T19:07:00Z")), true, "Sunday recap");
+});
+
+test("the day's chores wake the database once a day, whichever job gets there first", async () => {
+  const { setChoresStore, choresIfNeeded } = await import("../lib/daily.mjs");
+  setChoresStore({ get: async (k) => mem.has("c:" + k) ? JSON.parse(mem.get("c:" + k)) : null, setJSON: async (k, v) => mem.set("c:" + k, JSON.stringify(v)) });
+  const day = Date.parse("2026-10-27T07:07:00Z");
+  assert.equal(await choresIfNeeded(day), true, "the morning notifications do them");
+  assert.equal(await choresIfNeeded(day + 4 * 3600e3), false, "the late-morning fallback finds them done");
+  assert.equal(await choresIfNeeded(day + 24 * 3600e3), true, "next day, again");
 });

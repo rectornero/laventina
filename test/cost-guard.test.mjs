@@ -34,3 +34,21 @@ test("Claude inside the app is off unless explicitly switched on", async () => {
   const src = await readFile(new URL("../lib/ai.mjs", import.meta.url), "utf8");
   assert.match(src, /LAVENTINA_AI === "on"/);
 });
+
+test("no scheduled function runs more often than every 5 minutes", async () => {
+  for (const f of await readdir(FN)) {
+    if (!/\.m?[jt]s$/.test(f)) continue;
+    const m = (await readFile(new URL(f, FN), "utf8")).match(/schedule:\s*"([^"]+)"/); if (!m) continue;
+    assert.ok(perHour(m[1]) <= 12, `${f} runs ${perHour(m[1])}× an hour`);
+  }
+});
+
+test("production builds only happen on purpose", async () => {
+  const toml = await readFile(new URL("../netlify.toml", import.meta.url), "utf8");
+  assert.match(toml, /\[context\.production\][\s\S]*?ignore\s*=.*\[deploy\]/);
+});
+
+test("the page's minute check asks the cheap pulse before syncing", async () => {
+  const src = await readFile(new URL("../public/js/base.js", import.meta.url), "utf8");
+  assert.match(src, /\/pulse\?k=/);
+});

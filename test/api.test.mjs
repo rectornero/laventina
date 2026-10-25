@@ -248,8 +248,11 @@ test("remind me 5 / 10 / 30 minutes before: each goes out once, in the person's 
   assert.equal(sent.length, 1); assert.equal(sent[0].title, "In 30 min: Call the plumber"); assert.equal(sent[0].to, "https://push.example/sam-r");
   await sendReminders(at(28));
   assert.equal(sent.length, 1, "once each");
-  await sendReminders(at(9));
-  assert.equal(sent.length, 2); assert.match(sent[1].title, /^In 10 min/);
+  await sendReminders(at(16));
+  assert.equal(sent.length, 1, "the 10-minute one isn't due yet");
+  await sendReminders(at(13));
+  assert.equal(sent.length, 2, "the job runs every 5 minutes, so it goes out at the run before rather than late");
+  assert.match(sent[1].title, /^In 13 min/, "and says the real number of minutes");
   await sendReminders(at(-30));
   assert.equal(sent.length, 2, "nothing after it's due, and odd minute values are ignored");
   // Done tasks stay quiet.

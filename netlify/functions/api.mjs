@@ -9,6 +9,7 @@ import { makeCtx } from "../../lib/tools.mjs";
 import { newToken, tokenInfo, revokeTokens } from "../../lib/mcp.mjs";
 import { replanReminders, replanNotices } from "../../lib/wake.mjs";
 import { metered, costReport } from "../../lib/meter.mjs";
+import { pulseKey, touch, ensureStamp, lastChange } from "../../lib/pulse.mjs";
 import { publicKey, subscribe, unsubscribe, deviceSettings, sendTest, notifyAssigned, ringBell, thank } from "../../lib/push.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store", ...headers } });
@@ -25,7 +26,7 @@ async function pushInfo() {
 async function me(user, hid) {
   const h = (await q("select id, name, invite_code from households where id = $1", [hid]))[0];
   const members = await q("select u.id, u.name, u.color, m.role from members m join users u on u.id = m.user_id where m.household_id = $1 order by m.joined_at", [hid]);
-  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled(), push: await pushInfo() };
+  return { user, household: { id: h.id, name: h.name, inviteCode: h.invite_code }, members, ai: aiEnabled(), push: await pushInfo(), pulse: await pulseKey(hid) };
 }
 
 export async function route(req) {
@@ -50,8 +51,21 @@ export async function route(req) {
   }
   if (path === "/auth/logout" && method === "POST") return json({ ok: true }, 200, { "set-cookie": await endSession(req) });
 
+  // "Anything new?" from open screens: answered from Blobs, before the sign-in lookup, so the database can sleep.
+  if (path === "/pulse" && method === "GET") return json({ at: await lastChange(url.searchParams.get("k")) });
+
   const { user, householdId: hid } = await requireUser(req);
   if (!hid) throw new HttpError(409, "no_household", "Your account is not in a household.");
+  if (method !== "GET") {
+    const res = await authed(req, url, path, method, user, hid);
+    // Every write tells the other open screens to sync on their next check.
+    await touch(hid);
+    return res;
+  }
+  return authed(req, url, path, method, user, hid);
+}
+
+async function authed(req, url, path, method, user, hid) {
 
   if (path === "/me" && method === "GET") return json(await me(user, hid));
   if (path === "/me" && method === "PATCH") {
@@ -67,7 +81,9 @@ export async function route(req) {
 
   if (path === "/sync" && method === "GET") {
     if (!url.searchParams.get("since")) { try { await generateIfStale(hid); } catch (e) { console.error("generate", e); } }
-    return json(await sync(hid, user.id, url.searchParams.get("since")));
+    const out = await sync(hid, user.id, url.searchParams.get("since"));
+    await ensureStamp(hid);
+    return json(out);
   }
   if (path === "/generate" && method === "POST") return json(await generate(hid));
 

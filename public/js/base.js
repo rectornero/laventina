@@ -158,9 +158,16 @@ function applySync(res) {
   }
   lastSync = res.now;
 }
+// Is anything new since our last sync? A cheap stamp, so an open screen doesn't keep the database awake.
+async function quiet() {
+  if (!lastSync || !S.pulse || pending.size) return false;
+  try { const p = await api("GET", "/pulse?k=" + encodeURIComponent(S.pulse)); return !!(p && p.at && p.at < Date.parse(lastSync) - 10000); }
+  catch { return false; }
+}
 async function pull() {
   if (pulling || !S.me) return; pulling = true;
   try {
+    if (await quiet()) return;
     applySync(await api("GET", "/sync" + (lastSync ? "?since=" + encodeURIComponent(lastSync) : "")));
     // Pick up people who joined, or renamed themselves, about once a minute.
     if (Date.now() - lastMe > 60000) { lastMe = Date.now(); applyMe(await api("GET", "/me")); }
@@ -169,8 +176,11 @@ async function pull() {
   catch (e) { if (e.code !== "offline") console.error(e); }
   finally { pulling = false; }
 }
-setInterval(() => { if (document.visibilityState === "visible") pull(); }, 60000);
+// Once a minute, and only while Laventina is the window in front.
+const inFront = () => document.visibilityState === "visible" && document.hasFocus();
+setInterval(() => { if (inFront()) pull(); }, 60000);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
+window.addEventListener("focus", () => pull());
 
 // ---------- Flags & insight ----------
 function flagsFor(it) {
